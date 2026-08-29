@@ -1,108 +1,195 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import AppCard from '../../components/AppCard';
+import {
+    borderRadius,
+    colors,
+    fontSize,
+    spacing,
+} from '../../constants/theme';
+
 export default function ProgressScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.screenTitle}>Progress</Text>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+    >
+      <View style={styles.header}>
+        <Text style={styles.screenTitle}>Progress</Text>
+        <Text style={styles.subtitle}>Track changes over time</Text>
+      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Weight Progress</Text>
-
-        <Text style={styles.label}>Current Weight</Text>
-        <Text style={styles.largeValue}>No weight logged</Text>
-
-        <Text style={styles.label}>Goal Weight</Text>
-        <Text style={styles.value}>Not set</Text>
-
-        <View style={styles.button}>
-          <Text style={styles.buttonText}>Log Weight</Text>
+      <AppCard>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Weight Progress</Text>
+          <Text style={styles.accentText}>WEIGHT</Text>
         </View>
-      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Weight History</Text>
-        <Text style={styles.emptyText}>
-          Your weight history will appear here.
-        </Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Fitness Summary</Text>
-
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.label}>Workouts</Text>
-          </View>
-
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.label}>Days Tracked</Text>
-          </View>
-
-          <View style={styles.stat}>
+        <View style={styles.weightRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.label}>CURRENT</Text>
             <Text style={styles.statValue}>--</Text>
-            <Text style={styles.label}>Weight Change</Text>
+            <Text style={styles.statTarget}>No weight logged</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Text style={styles.label}>GOAL</Text>
+            <Text style={styles.statValue}>--</Text>
+            <Text style={styles.statTarget}>Not set</Text>
           </View>
         </View>
-      </View>
+
+        <View style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>Log Weight</Text>
+        </View>
+      </AppCard>
+
+      <AppCard>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Weight History</Text>
+          <Text style={styles.accentText}>HISTORY</Text>
+        </View>
+
+        <View style={styles.chartPlaceholder}>
+          <Text style={styles.chartPlaceholderText}>
+            Your weight chart will appear here
+          </Text>
+        </View>
+      </AppCard>
+
+      <AppCard>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Fitness Summary</Text>
+          <Text style={styles.accentText}>SUMMARY</Text>
+        </View>
+
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>0</Text>
+            <Text style={styles.summaryLabel}>Workouts</Text>
+          </View>
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>0</Text>
+            <Text style={styles.summaryLabel}>Days Tracked</Text>
+          </View>
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>--</Text>
+            <Text style={styles.summaryLabel}>Weight Change</Text>
+          </View>
+        </View>
+      </AppCard>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 16,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  header: {
+    marginBottom: spacing.sm,
   },
   screenTitle: {
-    fontSize: 32,
+    color: colors.text,
+    fontSize: fontSize.screenTitle,
     fontWeight: '700',
   },
-  card: {
-    padding: 20,
-    borderWidth: 1,
-    borderRadius: 12,
-    gap: 12,
+  subtitle: {
+    color: colors.textSecondary,
+    fontSize: fontSize.body,
+    marginTop: spacing.xs,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   cardTitle: {
-    fontSize: 20,
+    color: colors.text,
+    fontSize: fontSize.title,
     fontWeight: '600',
   },
-  label: {
-    fontSize: 14,
-  },
-  largeValue: {
-    fontSize: 24,
+  accentText: {
+    color: colors.primary,
+    fontSize: fontSize.small,
     fontWeight: '700',
+    letterSpacing: 1,
   },
-  value: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  emptyText: {
-    fontSize: 16,
-  },
-  button: {
-    padding: 14,
-    borderWidth: 1,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  statsRow: {
+  weightRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
-  stat: {
+  statItem: {
     flex: 1,
   },
+  label: {
+    color: colors.textSecondary,
+    fontSize: fontSize.small,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
   statValue: {
-    fontSize: 22,
+    color: colors.text,
+    fontSize: 32,
     fontWeight: '700',
+    marginTop: spacing.xs,
+  },
+  statTarget: {
+    color: colors.textSecondary,
+    fontSize: fontSize.small,
+  },
+  primaryButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  primaryButtonText: {
+    color: colors.background,
+    fontSize: fontSize.body,
+    fontWeight: '700',
+  },
+  chartPlaceholder: {
+    height: 180,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chartPlaceholderText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.body,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  summaryItem: {
+    flex: 1,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  summaryValue: {
+    color: colors.text,
+    fontSize: fontSize.title,
+    fontWeight: '700',
+  },
+  summaryLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.small,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
 });

@@ -1,109 +1,225 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import AppCard from '../../components/AppCard';
+import {
+    colors,
+    fontSize,
+    spacing,
+} from '../../constants/theme';
+
 export default function ProfileScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.screenTitle}>Profile</Text>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Personal Information</Text>
-
-        <Text style={styles.label}>Name</Text>
-        <Text style={styles.value}>Not set</Text>
-
-        <Text style={styles.label}>Height</Text>
-        <Text style={styles.value}>Not set</Text>
-
-        <Text style={styles.label}>Current Weight</Text>
-        <Text style={styles.value}>Not set</Text>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+    >
+      <View style={styles.header}>
+        <Text style={styles.screenTitle}>Profile</Text>
+        <Text style={styles.subtitle}>Manage your fitness settings</Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Fitness Goals</Text>
+      <AppCard>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Personal Information</Text>
+          <Text style={styles.accentText}>PROFILE</Text>
+        </View>
 
-        <Text style={styles.label}>Goal</Text>
-        <Text style={styles.value}>Not set</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Name</Text>
+          <Text style={styles.infoValue}>Not set</Text>
+        </View>
 
-        <Text style={styles.label}>Goal Weight</Text>
-        <Text style={styles.value}>Not set</Text>
+        <View style={styles.divider} />
 
-        <Text style={styles.label}>Activity Level</Text>
-        <Text style={styles.value}>Not set</Text>
-      </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Height</Text>
+          <Text style={styles.infoValue}>Not set</Text>
+        </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Nutrition Targets</Text>
+        <View style={styles.divider} />
 
-        <Text style={styles.label}>Daily Calories</Text>
-        <Text style={styles.value}>2,200 kcal</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Current Weight</Text>
+          <Text style={styles.infoValue}>Not set</Text>
+        </View>
+      </AppCard>
 
-        <View style={styles.macroRow}>
-          <View style={styles.macroItem}>
-            <Text style={styles.label}>Protein</Text>
-            <Text style={styles.value}>180g</Text>
+      <AppCard>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Fitness Goals</Text>
+          <Text style={styles.accentText}>GOALS</Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Goal</Text>
+          <Text style={styles.infoValue}>Not set</Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Goal Weight</Text>
+          <Text style={styles.infoValue}>Not set</Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Activity Level</Text>
+          <Text style={styles.infoValue}>Not set</Text>
+        </View>
+      </AppCard>
+
+      <AppCard>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Nutrition Targets</Text>
+          <Text style={styles.accentText}>DAILY</Text>
+        </View>
+
+        <View style={styles.targetRow}>
+          <View style={styles.targetItem}>
+            <Text style={styles.targetValue}>2,200</Text>
+            <Text style={styles.targetLabel}>Calories</Text>
           </View>
 
-          <View style={styles.macroItem}>
-            <Text style={styles.label}>Carbs</Text>
-            <Text style={styles.value}>190g</Text>
-          </View>
-
-          <View style={styles.macroItem}>
-            <Text style={styles.label}>Fat</Text>
-            <Text style={styles.value}>80g</Text>
+          <View style={styles.targetItem}>
+            <Text style={styles.targetValue}>180g</Text>
+            <Text style={styles.targetLabel}>Protein</Text>
           </View>
         </View>
-      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Settings</Text>
+        <View style={styles.targetRow}>
+          <View style={styles.targetItem}>
+            <Text style={styles.targetValue}>190g</Text>
+            <Text style={styles.targetLabel}>Carbs</Text>
+          </View>
 
-        <Text style={styles.settingItem}>Edit Profile</Text>
-        <Text style={styles.settingItem}>Update Goals</Text>
-        <Text style={styles.settingItem}>Nutrition Settings</Text>
-        <Text style={styles.settingItem}>Account Settings</Text>
-      </View>
+          <View style={styles.targetItem}>
+            <Text style={styles.targetValue}>80g</Text>
+            <Text style={styles.targetLabel}>Fat</Text>
+          </View>
+        </View>
+      </AppCard>
+
+      <AppCard>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Settings</Text>
+          <Text style={styles.accentText}>ACCOUNT</Text>
+        </View>
+
+        {[
+          'Edit Profile',
+          'Update Goals',
+          'Nutrition Settings',
+          'Account Settings',
+        ].map((item, index, items) => (
+          <View key={item}>
+            <View style={styles.settingRow}>
+              <Text style={styles.settingText}>{item}</Text>
+              <Text style={styles.chevron}>›</Text>
+            </View>
+
+            {index < items.length - 1 && <View style={styles.divider} />}
+          </View>
+        ))}
+      </AppCard>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 16,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  header: {
+    marginBottom: spacing.sm,
   },
   screenTitle: {
-    fontSize: 32,
+    color: colors.text,
+    fontSize: fontSize.screenTitle,
     fontWeight: '700',
   },
-  card: {
-    padding: 20,
-    borderWidth: 1,
-    borderRadius: 12,
-    gap: 10,
+  subtitle: {
+    color: colors.textSecondary,
+    fontSize: fontSize.body,
+    marginTop: spacing.xs,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   cardTitle: {
-    fontSize: 20,
+    color: colors.text,
+    fontSize: fontSize.title,
     fontWeight: '600',
   },
-  label: {
-    fontSize: 14,
+  accentText: {
+    color: colors.primary,
+    fontSize: fontSize.small,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
-  value: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  macroRow: {
+  infoRow: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  macroItem: {
-    flex: 1,
+  infoLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.body,
   },
-  settingItem: {
-    fontSize: 16,
+  infoValue: {
+    color: colors.text,
+    fontSize: fontSize.body,
     fontWeight: '600',
-    paddingVertical: 6,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  targetRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  targetItem: {
+    flex: 1,
+    backgroundColor: colors.surfaceSecondary,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  targetValue: {
+    color: colors.text,
+    fontSize: fontSize.title,
+    fontWeight: '700',
+  },
+  targetLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.small,
+    marginTop: spacing.xs,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  settingText: {
+    color: colors.text,
+    fontSize: fontSize.body,
+    fontWeight: '500',
+  },
+  chevron: {
+    color: colors.textSecondary,
+    fontSize: 28,
   },
 });
