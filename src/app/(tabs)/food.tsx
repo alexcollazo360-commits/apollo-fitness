@@ -1,23 +1,31 @@
 import { useRouter } from 'expo-router';
 import {
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 import AppCard from '../../components/AppCard';
 import {
-    colors,
-    fontSize,
-    spacing,
+  colors,
+  fontSize,
+  spacing,
 } from '../../constants/theme';
 import { useFood } from '../../context/FoodContext';
+import { useProfile } from '../../context/ProfileContext';
 
 export default function FoodScreen() {
   const router = useRouter();
+
   const { foodEntries, deleteFoodEntry } = useFood();
+  const { profile, loading: profileLoading } = useProfile();
+
+  const calorieTarget = profile?.dailyCalorieTarget ?? 2200;
+  const proteinTarget = profile?.proteinTarget ?? 180;
+  const carbTarget = profile?.carbTarget ?? 190;
+  const fatTarget = profile?.fatTarget ?? 80;
 
   const totalCalories = foodEntries.reduce(
     (total, entry) => total + entry.calories,
@@ -39,6 +47,11 @@ export default function FoodScreen() {
     0
   );
 
+  const calorieProgress =
+    calorieTarget > 0
+      ? Math.min((totalCalories / calorieTarget) * 100, 100)
+      : 0;
+
   return (
     <ScrollView
       style={styles.screen}
@@ -57,7 +70,11 @@ export default function FoodScreen() {
 
           <View style={styles.calorieRow}>
             <Text style={styles.calorieValue}>{totalCalories}</Text>
-            <Text style={styles.calorieTarget}> / 2,200 kcal</Text>
+
+            <Text style={styles.calorieTarget}>
+              {' '}
+              / {calorieTarget.toLocaleString()} kcal
+            </Text>
           </View>
 
           <View style={styles.progressTrack}>
@@ -65,10 +82,7 @@ export default function FoodScreen() {
               style={[
                 styles.progressFill,
                 {
-                  width: `${Math.min(
-                    (totalCalories / 2200) * 100,
-                    100
-                  )}%`,
+                  width: `${calorieProgress}%`,
                 },
               ]}
             />
@@ -79,21 +93,33 @@ export default function FoodScreen() {
           <View style={styles.macroItem}>
             <Text style={styles.label}>PROTEIN</Text>
             <Text style={styles.macroValue}>{totalProtein}</Text>
-            <Text style={styles.macroTarget}>of 180g</Text>
+            <Text style={styles.macroTarget}>
+              of {proteinTarget}g
+            </Text>
           </View>
 
           <View style={styles.macroItem}>
             <Text style={styles.label}>CARBS</Text>
             <Text style={styles.macroValue}>{totalCarbs}</Text>
-            <Text style={styles.macroTarget}>of 190g</Text>
+            <Text style={styles.macroTarget}>
+              of {carbTarget}g
+            </Text>
           </View>
 
           <View style={styles.macroItem}>
             <Text style={styles.label}>FAT</Text>
             <Text style={styles.macroValue}>{totalFat}</Text>
-            <Text style={styles.macroTarget}>of 80g</Text>
+            <Text style={styles.macroTarget}>
+              of {fatTarget}g
+            </Text>
           </View>
         </View>
+
+        {profileLoading && (
+          <Text style={styles.secondaryText}>
+            Loading nutrition targets...
+          </Text>
+        )}
       </AppCard>
 
       {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map((meal) => {

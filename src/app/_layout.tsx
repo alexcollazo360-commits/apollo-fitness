@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { colors } from '../constants/theme';
 import { FoodProvider } from '../context/FoodContext';
+import { ProfileProvider } from '../context/ProfileContext';
 import { supabase } from '../lib/supabase';
 
 export default function RootLayout() {
@@ -58,37 +59,46 @@ export default function RootLayout() {
   }
 
   return (
-    <FoodProvider>
-      <Stack>
-        <Stack.Screen
-          name="index"
-          options={{
-            headerShown: false,
-          }}
-        />
+    <ProfileProvider>
+      <FoodProvider>
+        <Stack>
+          <Stack.Screen
+            name="index"
+            options={{
+              headerShown: false,
+            }}
+          />
 
-        <Stack.Screen
-          name="auth"
-          options={{
-            headerShown: false,
-          }}
-        />
+          <Stack.Screen
+            name="auth"
+            options={{
+              headerShown: false,
+            }}
+          />
 
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-          }}
-        />
+          <Stack.Screen
+            name="(tabs)"
+            options={{
+              headerShown: false,
+            }}
+          />
 
-        <Stack.Screen
-          name="food/add"
-          options={{
-            headerShown: false,
-          }}
-        />
-      </Stack>
-    </FoodProvider>
+          <Stack.Screen
+            name="food/add"
+            options={{
+              headerShown: false,
+            }}
+          />
+
+          <Stack.Screen
+            name="profile/nutrition"
+            options={{
+              headerShown: false,
+            }}
+          />
+        </Stack>
+      </FoodProvider>
+    </ProfileProvider>
   );
 }
 
