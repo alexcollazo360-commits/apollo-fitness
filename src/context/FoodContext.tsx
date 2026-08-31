@@ -24,12 +24,12 @@ export type FoodEntry = {
 type FoodContextType = {
   foodEntries: FoodEntry[];
   loading: boolean;
-  addFoodEntry: (entry: Omit<FoodEntry, 'id'>) => Promise<void>;
+  addFoodEntry: (entry: Omit<FoodEntry, 'id'>) => Promise<boolean>;
   updateFoodEntry: (
     id: string,
     entry: Omit<FoodEntry, 'id'>
-  ) => Promise<void>;
-  deleteFoodEntry: (id: string) => Promise<void>;
+  ) => Promise<boolean>;
+  deleteFoodEntry: (id: string) => Promise<boolean>;
   refreshFoodEntries: () => Promise<void>;
 };
 
@@ -43,12 +43,35 @@ export function FoodProvider({ children }: PropsWithChildren) {
     refreshFoodEntries();
   }, []);
 
+  async function getCurrentUserId() {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      console.error('Unable to get current user:', error);
+      return null;
+    }
+
+    return user.id;
+  }
+
   async function refreshFoodEntries() {
     setLoading(true);
+
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+      setFoodEntries([]);
+      setLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('food_entries')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -72,10 +95,19 @@ export function FoodProvider({ children }: PropsWithChildren) {
     setLoading(false);
   }
 
-  async function addFoodEntry(entry: Omit<FoodEntry, 'id'>) {
+  async function addFoodEntry(
+    entry: Omit<FoodEntry, 'id'>
+  ): Promise<boolean> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+      return false;
+    }
+
     const { error } = await supabase
       .from('food_entries')
       .insert({
+        user_id: userId,
         name: entry.name,
         calories: entry.calories,
         protein: entry.protein,
@@ -87,16 +119,23 @@ export function FoodProvider({ children }: PropsWithChildren) {
 
     if (error) {
       console.error('Error adding food entry:', error);
-      return;
+      return false;
     }
 
     await refreshFoodEntries();
+    return true;
   }
 
   async function updateFoodEntry(
     id: string,
     updatedEntry: Omit<FoodEntry, 'id'>
-  ) {
+  ): Promise<boolean> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+      return false;
+    }
+
     const { error } = await supabase
       .from('food_entries')
       .update({
@@ -108,28 +147,38 @@ export function FoodProvider({ children }: PropsWithChildren) {
         serving: updatedEntry.serving,
         meal: updatedEntry.meal,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       console.error('Error updating food entry:', error);
-      return;
+      return false;
     }
 
     await refreshFoodEntries();
+    return true;
   }
 
-  async function deleteFoodEntry(id: string) {
+  async function deleteFoodEntry(id: string): Promise<boolean> {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+      return false;
+    }
+
     const { error } = await supabase
       .from('food_entries')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       console.error('Error deleting food entry:', error);
-      return;
+      return false;
     }
 
     await refreshFoodEntries();
+    return true;
   }
 
   return (
