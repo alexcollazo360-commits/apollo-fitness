@@ -35,6 +35,16 @@ type FoodContextType = {
 
 const FoodContext = createContext<FoodContextType | undefined>(undefined);
 
+function getLocalDateString() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
 export function FoodProvider({ children }: PropsWithChildren) {
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,10 +78,13 @@ export function FoodProvider({ children }: PropsWithChildren) {
       return;
     }
 
+    const today = getLocalDateString();
+
     const { data, error } = await supabase
       .from('food_entries')
       .select('*')
       .eq('user_id', userId)
+      .eq('logged_date', today)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -104,6 +117,8 @@ export function FoodProvider({ children }: PropsWithChildren) {
       return false;
     }
 
+    const today = getLocalDateString();
+
     const { error } = await supabase
       .from('food_entries')
       .insert({
@@ -115,6 +130,7 @@ export function FoodProvider({ children }: PropsWithChildren) {
         fat: entry.fat,
         serving: entry.serving,
         meal: entry.meal,
+        logged_date: today,
       });
 
     if (error) {
