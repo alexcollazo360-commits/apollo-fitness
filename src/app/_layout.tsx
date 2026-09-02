@@ -110,6 +110,13 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
+
+          <Stack.Screen
+            name="profile/account"
+            options={{
+              headerShown: false,
+            }}
+          />
         </Stack>
       </FoodProvider>
     </ProfileProvider>

@@ -59,7 +59,7 @@ export default function ProfileScreen() {
     },
     {
       label: 'Account Settings',
-      onPress: () => {},
+      onPress: () => router.push('/profile/account'),
     },
   ];
 
