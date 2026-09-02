@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import {
     Alert,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -23,10 +24,15 @@ export default function AccountSettingsScreen() {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      Alert.alert(
-        'Unable to sign out',
-        'There was a problem signing you out.'
-      );
+      if (Platform.OS === 'web') {
+        window.alert('There was a problem signing you out.');
+      } else {
+        Alert.alert(
+          'Unable to sign out',
+          'There was a problem signing you out.'
+        );
+      }
+
       return;
     }
 
@@ -34,6 +40,18 @@ export default function AccountSettingsScreen() {
   }
 
   function confirmSignOut() {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        'Are you sure you want to sign out?'
+      );
+
+      if (confirmed) {
+        handleSignOut();
+      }
+
+      return;
+    }
+
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
