@@ -27,7 +27,9 @@ export default function ProfileScreen() {
   const height =
     profile?.heightInches === null || profile?.heightInches === undefined
       ? 'Not set'
-      : `${profile.heightInches} in`;
+      : `${Math.floor(profile.heightInches / 12)} ft ${
+          profile.heightInches % 12
+        } in`;
 
   const currentWeight =
     profile?.currentWeight === null || profile?.currentWeight === undefined
@@ -45,11 +47,11 @@ export default function ProfileScreen() {
   const settings = [
     {
       label: 'Edit Profile',
-      onPress: () => {},
+      onPress: () => router.push('/profile/edit'),
     },
     {
       label: 'Update Goals',
-      onPress: () => {},
+      onPress: () => router.push('/profile/goals'),
     },
     {
       label: 'Nutrition Settings',

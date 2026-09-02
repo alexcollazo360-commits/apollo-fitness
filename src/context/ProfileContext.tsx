@@ -1,9 +1,9 @@
 import {
-    PropsWithChildren,
-    createContext,
-    useContext,
-    useEffect,
-    useState,
+  PropsWithChildren,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
 } from 'react';
 
 import { supabase } from '../lib/supabase';
@@ -28,12 +28,29 @@ type NutritionTargets = {
   fatTarget: number;
 };
 
+type PersonalInfo = {
+  currentWeight: number | null;
+  heightInches: number | null;
+};
+
+type FitnessGoals = {
+  goalWeight: number | null;
+  activityLevel: string | null;
+  fitnessGoal: string | null;
+};
+
 type ProfileContextType = {
   profile: UserProfile | null;
   loading: boolean;
   refreshProfile: () => Promise<void>;
   updateNutritionTargets: (
     targets: NutritionTargets
+  ) => Promise<boolean>;
+  updatePersonalInfo: (
+    personalInfo: PersonalInfo
+  ) => Promise<boolean>;
+  updateFitnessGoals: (
+    goals: FitnessGoals
   ) => Promise<boolean>;
 };
 
@@ -172,6 +189,77 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     return true;
   }
 
+  async function updatePersonalInfo(
+    personalInfo: PersonalInfo
+  ): Promise<boolean> {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session?.user?.id) {
+      console.error(
+        'Unable to update personal information:',
+        sessionError
+      );
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        current_weight: personalInfo.currentWeight,
+        height_inches: personalInfo.heightInches,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', session.user.id);
+
+    if (error) {
+      console.error('Error updating personal information:', error);
+      return false;
+    }
+
+    await loadProfileForUser(session.user.id);
+
+    return true;
+  }
+
+  async function updateFitnessGoals(
+    goals: FitnessGoals
+  ): Promise<boolean> {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session?.user?.id) {
+      console.error(
+        'Unable to update fitness goals:',
+        sessionError
+      );
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        goal_weight: goals.goalWeight,
+        activity_level: goals.activityLevel,
+        fitness_goal: goals.fitnessGoal,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', session.user.id);
+
+    if (error) {
+      console.error('Error updating fitness goals:', error);
+      return false;
+    }
+
+    await loadProfileForUser(session.user.id);
+
+    return true;
+  }
+
   return (
     <ProfileContext.Provider
       value={{
@@ -179,6 +267,8 @@ export function ProfileProvider({ children }: PropsWithChildren) {
         loading,
         refreshProfile,
         updateNutritionTargets,
+        updatePersonalInfo,
+        updateFitnessGoals,
       }}
     >
       {children}
