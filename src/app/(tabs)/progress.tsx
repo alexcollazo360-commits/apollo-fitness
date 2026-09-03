@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,10 +26,21 @@ export default function ProgressScreen() {
     loading,
     currentWeight,
     addWeightEntry,
+    updateWeightEntry,
+    deleteWeightEntry,
   } = useProgress();
 
   const [weight, setWeight] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(
+    null
+  );
+  const [editWeight, setEditWeight] = useState('');
+  const [updating, setUpdating] = useState(false);
+  const [deletingEntryId, setDeletingEntryId] = useState<string | null>(
+    null
+  );
 
   async function handleAddWeight() {
     const parsedWeight = Number(weight);
@@ -42,6 +55,81 @@ export default function ProgressScreen() {
 
     setWeight('');
     setSaving(false);
+  }
+
+  function startEditing(entryId: string, entryWeight: number) {
+    setEditingEntryId(entryId);
+    setEditWeight(String(entryWeight));
+  }
+
+  function cancelEditing() {
+    setEditingEntryId(null);
+    setEditWeight('');
+  }
+
+  async function handleUpdateWeight(
+    entryId: string,
+    loggedDate: string
+  ) {
+    const parsedWeight = Number(editWeight);
+
+    if (!parsedWeight || parsedWeight <= 0) {
+      return;
+    }
+
+    setUpdating(true);
+
+    await updateWeightEntry(
+      entryId,
+      parsedWeight,
+      loggedDate
+    );
+
+    setEditingEntryId(null);
+    setEditWeight('');
+    setUpdating(false);
+  }
+
+  async function performDelete(entryId: string) {
+    setDeletingEntryId(entryId);
+
+    await deleteWeightEntry(entryId);
+
+    if (editingEntryId === entryId) {
+      cancelEditing();
+    }
+
+    setDeletingEntryId(null);
+  }
+
+  function handleDeleteWeight(entryId: string) {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        'Delete this weight entry?'
+      );
+
+      if (confirmed) {
+        performDelete(entryId);
+      }
+
+      return;
+    }
+
+    Alert.alert(
+      'Delete Weight Entry',
+      'Are you sure you want to delete this weight entry?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => performDelete(entryId),
+        },
+      ]
+    );
   }
 
   function formatDate(date: string) {
@@ -126,22 +214,133 @@ export default function ProgressScreen() {
             </Text>
           </AppCard>
         ) : (
-          weightEntries.map((entry) => (
-            <View
-              key={entry.id}
-              style={styles.historyRow}
-            >
-              <View>
-                <Text style={styles.historyWeight}>
-                  {entry.weight} lbs
-                </Text>
+          weightEntries.map((entry) => {
+            const isEditing = editingEntryId === entry.id;
+            const isDeleting = deletingEntryId === entry.id;
 
-                <Text style={styles.historyDate}>
-                  {formatDate(entry.loggedDate)}
-                </Text>
+            return (
+              <View
+                key={entry.id}
+                style={styles.historyRow}
+              >
+                {isEditing ? (
+                  <>
+                    <Text style={styles.historyDate}>
+                      {formatDate(entry.loggedDate)}
+                    </Text>
+
+                    <View style={styles.editInputRow}>
+                      <TextInput
+                        value={editWeight}
+                        onChangeText={setEditWeight}
+                        keyboardType="decimal-pad"
+                        autoFocus
+                        style={styles.editInput}
+                      />
+
+                      <Text style={styles.unit}>lbs</Text>
+                    </View>
+
+                    <View style={styles.actionRow}>
+                      <Pressable
+                        onPress={cancelEditing}
+                        disabled={updating}
+                        style={({ pressed }) => [
+                          styles.secondaryButton,
+                          pressed && styles.buttonPressed,
+                        ]}
+                      >
+                        <Text style={styles.secondaryButtonText}>
+                          CANCEL
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        onPress={() =>
+                          handleUpdateWeight(
+                            entry.id,
+                            entry.loggedDate
+                          )
+                        }
+                        disabled={updating}
+                        style={({ pressed }) => [
+                          styles.saveButton,
+                          pressed && styles.buttonPressed,
+                          updating && styles.buttonDisabled,
+                        ]}
+                      >
+                        {updating ? (
+                          <ActivityIndicator
+                            color={colors.background}
+                          />
+                        ) : (
+                          <Text style={styles.saveButtonText}>
+                            SAVE
+                          </Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.historyHeader}>
+                      <View>
+                        <Text style={styles.historyWeight}>
+                          {entry.weight} lbs
+                        </Text>
+
+                        <Text style={styles.historyDate}>
+                          {formatDate(entry.loggedDate)}
+                        </Text>
+                      </View>
+
+                      {isDeleting && (
+                        <ActivityIndicator
+                          color={colors.danger}
+                        />
+                      )}
+                    </View>
+
+                    <View style={styles.actionRow}>
+                      <Pressable
+                        onPress={() =>
+                          startEditing(
+                            entry.id,
+                            entry.weight
+                          )
+                        }
+                        disabled={isDeleting}
+                        style={({ pressed }) => [
+                          styles.secondaryButton,
+                          pressed && styles.buttonPressed,
+                        ]}
+                      >
+                        <Text style={styles.secondaryButtonText}>
+                          EDIT
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        onPress={() =>
+                          handleDeleteWeight(entry.id)
+                        }
+                        disabled={isDeleting}
+                        style={({ pressed }) => [
+                          styles.deleteButton,
+                          pressed && styles.buttonPressed,
+                          isDeleting && styles.buttonDisabled,
+                        ]}
+                      >
+                        <Text style={styles.deleteButtonText}>
+                          DELETE
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </>
+                )}
               </View>
-            </View>
-          ))
+            );
+          })
         )}
       </View>
     </ScrollView>
@@ -242,6 +441,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
+    gap: spacing.md,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   historyWeight: {
     color: colors.text,
@@ -249,8 +454,68 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   historyDate: {
-    marginTop: spacing.xs,
     color: colors.textSecondary,
     fontSize: fontSize.small,
+  },
+  editInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  editInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: colors.surfaceSecondary,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    color: colors.text,
+    fontSize: fontSize.body,
+    paddingHorizontal: spacing.md,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  secondaryButton: {
+    flex: 1,
+    height: 42,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: colors.text,
+    fontSize: fontSize.small,
+    fontWeight: '700',
+  },
+  saveButton: {
+    flex: 1,
+    height: 42,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    color: colors.background,
+    fontSize: fontSize.small,
+    fontWeight: '700',
+  },
+  deleteButton: {
+    flex: 1,
+    height: 42,
+    borderColor: colors.danger,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    color: colors.danger,
+    fontSize: fontSize.small,
+    fontWeight: '700',
   },
 });
