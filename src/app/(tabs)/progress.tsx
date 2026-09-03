@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import AppCard from '../../components/AppCard';
+import WeightTrendChart from '../../components/WeightTrendChart';
 import {
   borderRadius,
   colors,
@@ -167,6 +168,12 @@ export default function ProgressScreen() {
               : 'No weight logged'}
           </Text>
         )}
+      </AppCard>
+
+      <AppCard>
+        <Text style={styles.cardTitle}>Weight Trend</Text>
+
+        <WeightTrendChart entries={weightEntries} />
       </AppCard>
 
       <AppCard>
