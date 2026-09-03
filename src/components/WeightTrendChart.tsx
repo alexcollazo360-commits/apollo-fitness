@@ -19,26 +19,39 @@ import {
 import type { WeightEntry } from '../context/ProgressContext';
 
 type WeightTrendChartProps = {
-  entries: WeightEntry[];
+  entries?: WeightEntry[];
 };
 
 export default function WeightTrendChart({
-  entries,
+  entries = [],
 }: WeightTrendChartProps) {
   const { width } = useWindowDimensions();
 
-  const chartWidth = Math.max(width - spacing.lg * 4, 260);
+  const chartWidth = Math.max(
+    Math.min(width - spacing.lg * 4, 700),
+    260
+  );
+
   const chartHeight = 180;
   const horizontalPadding = 12;
   const verticalPadding = 16;
 
   const chartData = useMemo(() => {
     return [...entries]
-      .sort(
-        (a, b) =>
+      .sort((a, b) => {
+        const dateDifference =
           new Date(a.loggedDate).getTime() -
-          new Date(b.loggedDate).getTime()
-      )
+          new Date(b.loggedDate).getTime();
+
+        if (dateDifference !== 0) {
+          return dateDifference;
+        }
+
+        return (
+          new Date(a.createdAt).getTime() -
+          new Date(b.createdAt).getTime()
+        );
+      })
       .slice(-10);
   }, [entries]);
 
@@ -52,7 +65,9 @@ export default function WeightTrendChart({
     );
   }
 
-  const weights = chartData.map((entry) => entry.weight);
+  const weights = chartData.map(
+    (entry) => entry.weight
+  );
 
   const minWeight = Math.min(...weights);
   const maxWeight = Math.max(...weights);
@@ -68,45 +83,62 @@ export default function WeightTrendChart({
   const usableHeight =
     chartHeight - verticalPadding * 2;
 
-  const points = chartData.map((entry, index) => {
-    const x =
-      horizontalPadding +
-      (index / (chartData.length - 1)) *
-        usableWidth;
+  const points = chartData.map(
+    (entry, index) => {
+      const x =
+        horizontalPadding +
+        (index / (chartData.length - 1)) *
+          usableWidth;
 
-    const normalizedWeight =
-      (entry.weight - minWeight) / range;
+      const normalizedWeight =
+        (entry.weight - minWeight) /
+        range;
 
-    const y =
-      verticalPadding +
-      usableHeight -
-      normalizedWeight * usableHeight;
+      const y =
+        verticalPadding +
+        usableHeight -
+        normalizedWeight * usableHeight;
 
-    return {
-      x,
-      y,
-      entry,
-    };
-  });
+      return {
+        x,
+        y,
+        entry,
+      };
+    }
+  );
 
   const polylinePoints = points
-    .map((point) => `${point.x},${point.y}`)
+    .map(
+      (point) =>
+        `${point.x},${point.y}`
+    )
     .join(' ');
 
   return (
     <View style={styles.container}>
       <View style={styles.summaryRow}>
         <View>
-          <Text style={styles.summaryLabel}>START</Text>
+          <Text style={styles.summaryLabel}>
+            START
+          </Text>
+
           <Text style={styles.summaryValue}>
             {chartData[0].weight} lbs
           </Text>
         </View>
 
         <View style={styles.summaryRight}>
-          <Text style={styles.summaryLabel}>LATEST</Text>
+          <Text style={styles.summaryLabel}>
+            LATEST
+          </Text>
+
           <Text style={styles.summaryValue}>
-            {chartData[chartData.length - 1].weight} lbs
+            {
+              chartData[
+                chartData.length - 1
+              ].weight
+            }{' '}
+            lbs
           </Text>
         </View>
       </View>
@@ -118,9 +150,18 @@ export default function WeightTrendChart({
         >
           <Line
             x1={horizontalPadding}
-            y1={chartHeight - verticalPadding}
-            x2={chartWidth - horizontalPadding}
-            y2={chartHeight - verticalPadding}
+            y1={
+              chartHeight -
+              verticalPadding
+            }
+            x2={
+              chartWidth -
+              horizontalPadding
+            }
+            y2={
+              chartHeight -
+              verticalPadding
+            }
             stroke={colors.border}
             strokeWidth={1}
           />
@@ -129,7 +170,10 @@ export default function WeightTrendChart({
             x1={horizontalPadding}
             y1={verticalPadding}
             x2={horizontalPadding}
-            y2={chartHeight - verticalPadding}
+            y2={
+              chartHeight -
+              verticalPadding
+            }
             stroke={colors.border}
             strokeWidth={1}
           />

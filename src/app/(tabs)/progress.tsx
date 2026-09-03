@@ -13,6 +13,7 @@ import {
 
 import AppCard from '../../components/AppCard';
 import WeightTrendChart from '../../components/WeightTrendChart';
+import WorkoutActivityChart from '../../components/WorkoutActivityChart';
 import {
   borderRadius,
   colors,
@@ -21,6 +22,66 @@ import {
 } from '../../constants/theme';
 import { useProfile } from '../../context/ProfileContext';
 import { useProgress } from '../../context/ProgressContext';
+import { useWorkout } from '../../context/WorkoutContext';
+
+function getLocalDateString(date: Date) {
+  const year = date.getFullYear();
+
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, '0');
+
+  const day = String(
+    date.getDate()
+  ).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function isValidDateString(value: string) {
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})$/
+  );
+
+  if (!match) {
+    return false;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  const parsedDate = new Date(
+    year,
+    month - 1,
+    day
+  );
+
+  return (
+    parsedDate.getFullYear() === year &&
+    parsedDate.getMonth() === month - 1 &&
+    parsedDate.getDate() === day
+  );
+}
+
+function getStartOfWeekDateString() {
+  const today = new Date();
+
+  const dayOfWeek = today.getDay();
+
+  const daysSinceMonday =
+    dayOfWeek === 0
+      ? 6
+      : dayOfWeek - 1;
+
+  const startOfWeek = new Date(today);
+
+  startOfWeek.setDate(
+    today.getDate() - daysSinceMonday
+  );
+
+  return getLocalDateString(startOfWeek);
+}
 
 export default function ProgressScreen() {
   const {
@@ -37,79 +98,163 @@ export default function ProgressScreen() {
     loading: profileLoading,
   } = useProfile();
 
-  const [weight, setWeight] = useState('');
-  const [saving, setSaving] = useState(false);
+  const {
+    workoutHistory,
+    historyLoading,
+  } = useWorkout();
 
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(
-    null
-  );
-  const [editWeight, setEditWeight] = useState('');
-  const [updating, setUpdating] = useState(false);
-  const [deletingEntryId, setDeletingEntryId] = useState<string | null>(
-    null
-  );
+  const today = getLocalDateString(new Date());
+
+  const [weight, setWeight] = useState('');
+  const [weightDate, setWeightDate] =
+    useState(today);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [editingEntryId, setEditingEntryId] =
+    useState<string | null>(null);
+
+  const [editWeight, setEditWeight] =
+    useState('');
+
+  const [editDate, setEditDate] =
+    useState('');
+
+  const [updating, setUpdating] =
+    useState(false);
+
+  const [deletingEntryId, setDeletingEntryId] =
+    useState<string | null>(null);
 
   async function handleAddWeight() {
     const parsedWeight = Number(weight);
 
     if (!parsedWeight || parsedWeight <= 0) {
+      Alert.alert(
+        'Invalid Weight',
+        'Enter a valid weight greater than zero.'
+      );
+
+      return;
+    }
+
+    if (!isValidDateString(weightDate)) {
+      Alert.alert(
+        'Invalid Date',
+        'Enter the date as YYYY-MM-DD.'
+      );
+
+      return;
+    }
+
+    if (weightDate > today) {
+      Alert.alert(
+        'Invalid Date',
+        'Weight entries cannot be logged for a future date.'
+      );
+
       return;
     }
 
     setSaving(true);
 
-    await addWeightEntry(parsedWeight);
+    try {
+      await addWeightEntry(
+        parsedWeight,
+        weightDate
+      );
 
-    setWeight('');
-    setSaving(false);
+      setWeight('');
+      setWeightDate(today);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function startEditing(entryId: string, entryWeight: number) {
+  function startEditing(
+    entryId: string,
+    entryWeight: number,
+    loggedDate: string
+  ) {
     setEditingEntryId(entryId);
     setEditWeight(String(entryWeight));
+    setEditDate(loggedDate);
   }
 
   function cancelEditing() {
     setEditingEntryId(null);
     setEditWeight('');
+    setEditDate('');
   }
 
   async function handleUpdateWeight(
-    entryId: string,
-    loggedDate: string
+    entryId: string
   ) {
-    const parsedWeight = Number(editWeight);
+    const parsedWeight =
+      Number(editWeight);
 
     if (!parsedWeight || parsedWeight <= 0) {
+      Alert.alert(
+        'Invalid Weight',
+        'Enter a valid weight greater than zero.'
+      );
+
+      return;
+    }
+
+    if (!isValidDateString(editDate)) {
+      Alert.alert(
+        'Invalid Date',
+        'Enter the date as YYYY-MM-DD.'
+      );
+
+      return;
+    }
+
+    if (editDate > today) {
+      Alert.alert(
+        'Invalid Date',
+        'Weight entries cannot be logged for a future date.'
+      );
+
       return;
     }
 
     setUpdating(true);
 
-    await updateWeightEntry(
-      entryId,
-      parsedWeight,
-      loggedDate
-    );
+    try {
+      await updateWeightEntry(
+        entryId,
+        parsedWeight,
+        editDate
+      );
 
-    setEditingEntryId(null);
-    setEditWeight('');
-    setUpdating(false);
+      cancelEditing();
+    } finally {
+      setUpdating(false);
+    }
   }
 
-  async function performDelete(entryId: string) {
+  async function performDelete(
+    entryId: string
+  ) {
     setDeletingEntryId(entryId);
 
-    await deleteWeightEntry(entryId);
+    try {
+      await deleteWeightEntry(entryId);
 
-    if (editingEntryId === entryId) {
-      cancelEditing();
+      if (editingEntryId === entryId) {
+        cancelEditing();
+      }
+    } finally {
+      setDeletingEntryId(null);
     }
-
-    setDeletingEntryId(null);
   }
 
-  function handleDeleteWeight(entryId: string) {
+  function handleDeleteWeight(
+    entryId: string
+  ) {
     if (Platform.OS === 'web') {
       const confirmed = window.confirm(
         'Delete this weight entry?'
@@ -133,28 +278,37 @@ export default function ProgressScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => performDelete(entryId),
+          onPress: () =>
+            performDelete(entryId),
         },
       ]
     );
   }
 
   function formatDate(date: string) {
-    const parsedDate = new Date(`${date}T00:00:00`);
+    const parsedDate = new Date(
+      `${date}T00:00:00`
+    );
 
-    return parsedDate.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    return parsedDate.toLocaleDateString(
+      undefined,
+      {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }
+    );
   }
 
   const startingWeight =
     weightEntries.length > 0
-      ? weightEntries[weightEntries.length - 1].weight
+      ? weightEntries[
+          weightEntries.length - 1
+        ].weight
       : null;
 
-  const goalWeight = profile?.goalWeight ?? null;
+  const goalWeight =
+    profile?.goalWeight ?? null;
 
   let goalProgress = 0;
   let weightChanged = 0;
@@ -165,12 +319,17 @@ export default function ProgressScreen() {
     currentWeight !== null &&
     goalWeight !== null
   ) {
-    const totalGoalDistance = goalWeight - startingWeight;
-    const currentDistance = currentWeight - startingWeight;
+    const totalGoalDistance =
+      goalWeight - startingWeight;
+
+    const currentDistance =
+      currentWeight - startingWeight;
 
     if (totalGoalDistance !== 0) {
       goalProgress =
-        (currentDistance / totalGoalDistance) * 100;
+        (currentDistance /
+          totalGoalDistance) *
+        100;
     }
 
     goalProgress = Math.max(
@@ -192,26 +351,65 @@ export default function ProgressScreen() {
     goalWeight !== null &&
     goalWeight < startingWeight;
 
+  const totalWorkouts =
+    workoutHistory.length;
+
+  const totalExercises =
+    workoutHistory.reduce(
+      (total, workout) =>
+        total + workout.exerciseCount,
+      0
+    );
+
+  const totalSets =
+    workoutHistory.reduce(
+      (total, workout) =>
+        total + workout.setCount,
+      0
+    );
+
+  const startOfWeek =
+    getStartOfWeekDateString();
+
+  const workoutsThisWeek =
+    workoutHistory.filter(
+      (workout) =>
+        workout.workoutDate >=
+          startOfWeek &&
+        workout.workoutDate <= today
+    ).length;
+
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={
+        styles.content
+      }
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Progress</Text>
+        <Text style={styles.title}>
+          Progress
+        </Text>
+
         <Text style={styles.subtitle}>
-          Track your body weight over time.
+          Track your fitness progress over time.
         </Text>
       </View>
 
       <AppCard>
-        <Text style={styles.cardLabel}>CURRENT WEIGHT</Text>
+        <Text style={styles.cardLabel}>
+          CURRENT WEIGHT
+        </Text>
 
         {loading ? (
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator
+            color={colors.primary}
+          />
         ) : (
-          <Text style={styles.currentWeight}>
+          <Text
+            style={styles.currentWeight}
+          >
             {currentWeight !== null
               ? `${currentWeight} lbs`
               : 'No weight logged'}
@@ -220,10 +418,14 @@ export default function ProgressScreen() {
       </AppCard>
 
       <AppCard>
-        <Text style={styles.cardTitle}>Goal Progress</Text>
+        <Text style={styles.cardTitle}>
+          Goal Progress
+        </Text>
 
         {loading || profileLoading ? (
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator
+            color={colors.primary}
+          />
         ) : startingWeight === null ? (
           <Text style={styles.emptyText}>
             Log your weight to begin tracking goal progress.
@@ -234,30 +436,73 @@ export default function ProgressScreen() {
           </Text>
         ) : (
           <>
-            <View style={styles.goalWeightRow}>
-              <View style={styles.goalWeightColumn}>
-                <Text style={styles.goalLabel}>START</Text>
-                <Text style={styles.goalWeightValue}>
+            <View
+              style={styles.goalWeightRow}
+            >
+              <View
+                style={
+                  styles.goalWeightColumn
+                }
+              >
+                <Text
+                  style={styles.goalLabel}
+                >
+                  START
+                </Text>
+
+                <Text
+                  style={
+                    styles.goalWeightValue
+                  }
+                >
                   {startingWeight} lbs
                 </Text>
               </View>
 
-              <View style={styles.goalWeightColumnCenter}>
-                <Text style={styles.goalLabel}>CURRENT</Text>
-                <Text style={styles.goalCurrentValue}>
+              <View
+                style={
+                  styles.goalWeightColumnCenter
+                }
+              >
+                <Text
+                  style={styles.goalLabel}
+                >
+                  CURRENT
+                </Text>
+
+                <Text
+                  style={
+                    styles.goalCurrentValue
+                  }
+                >
                   {currentWeight} lbs
                 </Text>
               </View>
 
-              <View style={styles.goalWeightColumnRight}>
-                <Text style={styles.goalLabel}>GOAL</Text>
-                <Text style={styles.goalWeightValue}>
+              <View
+                style={
+                  styles.goalWeightColumnRight
+                }
+              >
+                <Text
+                  style={styles.goalLabel}
+                >
+                  GOAL
+                </Text>
+
+                <Text
+                  style={
+                    styles.goalWeightValue
+                  }
+                >
                   {goalWeight} lbs
                 </Text>
               </View>
             </View>
 
-            <View style={styles.progressTrack}>
+            <View
+              style={styles.progressTrack}
+            >
               <View
                 style={[
                   styles.progressFill,
@@ -268,29 +513,65 @@ export default function ProgressScreen() {
               />
             </View>
 
-            <Text style={styles.progressPercent}>
-              {Math.round(goalProgress)}% toward goal
+            <Text
+              style={
+                styles.progressPercent
+              }
+            >
+              {Math.round(goalProgress)}%
+              {' '}toward goal
             </Text>
 
-            <View style={styles.goalStatsRow}>
-              <View style={styles.goalStat}>
-                <Text style={styles.goalStatValue}>
+            <View
+              style={styles.goalStatsRow}
+            >
+              <View
+                style={styles.goalStat}
+              >
+                <Text
+                  style={
+                    styles.goalStatValue
+                  }
+                >
                   {weightChanged.toFixed(1)}
                 </Text>
 
-                <Text style={styles.goalStatLabel}>
-                  lbs {isWeightLossGoal ? 'lost' : 'gained'}
+                <Text
+                  style={
+                    styles.goalStatLabel
+                  }
+                >
+                  lbs{' '}
+                  {isWeightLossGoal
+                    ? 'lost'
+                    : 'gained'}
                 </Text>
               </View>
 
-              <View style={styles.goalStatDivider} />
+              <View
+                style={
+                  styles.goalStatDivider
+                }
+              />
 
-              <View style={styles.goalStat}>
-                <Text style={styles.goalStatValue}>
-                  {weightRemaining.toFixed(1)}
+              <View
+                style={styles.goalStat}
+              >
+                <Text
+                  style={
+                    styles.goalStatValue
+                  }
+                >
+                  {weightRemaining.toFixed(
+                    1
+                  )}
                 </Text>
 
-                <Text style={styles.goalStatLabel}>
+                <Text
+                  style={
+                    styles.goalStatLabel
+                  }
+                >
                   lbs remaining
                 </Text>
               </View>
@@ -300,25 +581,174 @@ export default function ProgressScreen() {
       </AppCard>
 
       <AppCard>
-        <Text style={styles.cardTitle}>Weight Trend</Text>
+        <Text style={styles.cardTitle}>
+          Workout Progress
+        </Text>
 
-        <WeightTrendChart entries={weightEntries} />
+        {historyLoading ? (
+          <ActivityIndicator
+            color={colors.primary}
+          />
+        ) : (
+          <>
+            <View
+              style={
+                styles.workoutStatsGrid
+              }
+            >
+              <View
+                style={styles.workoutStat}
+              >
+                <Text
+                  style={
+                    styles.workoutStatValue
+                  }
+                >
+                  {totalWorkouts}
+                </Text>
+
+                <Text
+                  style={
+                    styles.workoutStatLabel
+                  }
+                >
+                  Workouts Completed
+                </Text>
+              </View>
+
+              <View
+                style={styles.workoutStat}
+              >
+                <Text
+                  style={
+                    styles.workoutStatValue
+                  }
+                >
+                  {workoutsThisWeek}
+                </Text>
+
+                <Text
+                  style={
+                    styles.workoutStatLabel
+                  }
+                >
+                  This Week
+                </Text>
+              </View>
+
+              <View
+                style={styles.workoutStat}
+              >
+                <Text
+                  style={
+                    styles.workoutStatValue
+                  }
+                >
+                  {totalExercises}
+                </Text>
+
+                <Text
+                  style={
+                    styles.workoutStatLabel
+                  }
+                >
+                  Total Exercises
+                </Text>
+              </View>
+
+              <View
+                style={styles.workoutStat}
+              >
+                <Text
+                  style={
+                    styles.workoutStatValue
+                  }
+                >
+                  {totalSets}
+                </Text>
+
+                <Text
+                  style={
+                    styles.workoutStatLabel
+                  }
+                >
+                  Total Sets
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={
+                styles.workoutChartSection
+              }
+            >
+              <WorkoutActivityChart
+                workouts={workoutHistory}
+              />
+            </View>
+          </>
+        )}
       </AppCard>
 
       <AppCard>
-        <Text style={styles.cardTitle}>Log Weight</Text>
+        <Text style={styles.cardTitle}>
+          Weight Trend
+        </Text>
 
-        <View style={styles.inputRow}>
+        <WeightTrendChart
+          entries={weightEntries}
+        />
+      </AppCard>
+
+      <AppCard>
+        <Text style={styles.cardTitle}>
+          Log Weight
+        </Text>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.inputLabel}>
+            WEIGHT
+          </Text>
+
+          <View style={styles.inputRow}>
+            <TextInput
+              value={weight}
+              onChangeText={setWeight}
+              placeholder="245"
+              placeholderTextColor={
+                colors.textSecondary
+              }
+              keyboardType="decimal-pad"
+              style={styles.input}
+            />
+
+            <Text style={styles.unit}>
+              lbs
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.inputLabel}>
+            DATE
+          </Text>
+
           <TextInput
-            value={weight}
-            onChangeText={setWeight}
-            placeholder="245"
-            placeholderTextColor={colors.textSecondary}
-            keyboardType="decimal-pad"
-            style={styles.input}
+            value={weightDate}
+            onChangeText={setWeightDate}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={
+              colors.textSecondary
+            }
+            autoCapitalize="none"
+            autoCorrect={false}
+            maxLength={10}
+            style={styles.dateInput}
           />
 
-          <Text style={styles.unit}>lbs</Text>
+          <Text style={styles.helperText}>
+            Use YYYY-MM-DD. Defaults to today.
+          </Text>
         </View>
 
         <Pressable
@@ -326,33 +756,51 @@ export default function ProgressScreen() {
           disabled={saving}
           style={({ pressed }) => [
             styles.button,
-            pressed && styles.buttonPressed,
-            saving && styles.buttonDisabled,
+            pressed &&
+              styles.buttonPressed,
+            saving &&
+              styles.buttonDisabled,
           ]}
         >
           {saving ? (
-            <ActivityIndicator color={colors.background} />
+            <ActivityIndicator
+              color={colors.background}
+            />
           ) : (
-            <Text style={styles.buttonText}>ADD WEIGHT</Text>
+            <Text
+              style={styles.buttonText}
+            >
+              ADD WEIGHT
+            </Text>
           )}
         </Pressable>
       </AppCard>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Weight History</Text>
+        <Text style={styles.sectionTitle}>
+          Weight History
+        </Text>
 
         {loading ? (
-          <ActivityIndicator color={colors.primary} />
-        ) : weightEntries.length === 0 ? (
+          <ActivityIndicator
+            color={colors.primary}
+          />
+        ) : weightEntries.length ===
+          0 ? (
           <AppCard>
-            <Text style={styles.emptyText}>
+            <Text
+              style={styles.emptyText}
+            >
               Your weight history will appear here.
             </Text>
           </AppCard>
         ) : (
           weightEntries.map((entry) => {
-            const isEditing = editingEntryId === entry.id;
-            const isDeleting = deletingEntryId === entry.id;
+            const isEditing =
+              editingEntryId === entry.id;
+
+            const isDeleting =
+              deletingEntryId === entry.id;
 
             return (
               <View
@@ -361,32 +809,98 @@ export default function ProgressScreen() {
               >
                 {isEditing ? (
                   <>
-                    <Text style={styles.historyDate}>
-                      {formatDate(entry.loggedDate)}
-                    </Text>
+                    <View
+                      style={
+                        styles.editFormGroup
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.inputLabel
+                        }
+                      >
+                        WEIGHT
+                      </Text>
 
-                    <View style={styles.editInputRow}>
-                      <TextInput
-                        value={editWeight}
-                        onChangeText={setEditWeight}
-                        keyboardType="decimal-pad"
-                        autoFocus
-                        style={styles.editInput}
-                      />
+                      <View
+                        style={
+                          styles.editInputRow
+                        }
+                      >
+                        <TextInput
+                          value={editWeight}
+                          onChangeText={
+                            setEditWeight
+                          }
+                          keyboardType="decimal-pad"
+                          autoFocus
+                          style={
+                            styles.editInput
+                          }
+                        />
 
-                      <Text style={styles.unit}>lbs</Text>
+                        <Text
+                          style={styles.unit}
+                        >
+                          lbs
+                        </Text>
+                      </View>
                     </View>
 
-                    <View style={styles.actionRow}>
+                    <View
+                      style={
+                        styles.editFormGroup
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.inputLabel
+                        }
+                      >
+                        DATE
+                      </Text>
+
+                      <TextInput
+                        value={editDate}
+                        onChangeText={
+                          setEditDate
+                        }
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={
+                          colors.textSecondary
+                        }
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        maxLength={10}
+                        style={
+                          styles.editDateInput
+                        }
+                      />
+                    </View>
+
+                    <View
+                      style={
+                        styles.actionRow
+                      }
+                    >
                       <Pressable
-                        onPress={cancelEditing}
+                        onPress={
+                          cancelEditing
+                        }
                         disabled={updating}
-                        style={({ pressed }) => [
+                        style={({
+                          pressed,
+                        }) => [
                           styles.secondaryButton,
-                          pressed && styles.buttonPressed,
+                          pressed &&
+                            styles.buttonPressed,
                         ]}
                       >
-                        <Text style={styles.secondaryButtonText}>
+                        <Text
+                          style={
+                            styles.secondaryButtonText
+                          }
+                        >
                           CANCEL
                         </Text>
                       </Pressable>
@@ -394,23 +908,32 @@ export default function ProgressScreen() {
                       <Pressable
                         onPress={() =>
                           handleUpdateWeight(
-                            entry.id,
-                            entry.loggedDate
+                            entry.id
                           )
                         }
                         disabled={updating}
-                        style={({ pressed }) => [
+                        style={({
+                          pressed,
+                        }) => [
                           styles.saveButton,
-                          pressed && styles.buttonPressed,
-                          updating && styles.buttonDisabled,
+                          pressed &&
+                            styles.buttonPressed,
+                          updating &&
+                            styles.buttonDisabled,
                         ]}
                       >
                         {updating ? (
                           <ActivityIndicator
-                            color={colors.background}
+                            color={
+                              colors.background
+                            }
                           />
                         ) : (
-                          <Text style={styles.saveButtonText}>
+                          <Text
+                            style={
+                              styles.saveButtonText
+                            }
+                          >
                             SAVE
                           </Text>
                         )}
@@ -419,55 +942,97 @@ export default function ProgressScreen() {
                   </>
                 ) : (
                   <>
-                    <View style={styles.historyHeader}>
+                    <View
+                      style={
+                        styles.historyHeader
+                      }
+                    >
                       <View>
-                        <Text style={styles.historyWeight}>
+                        <Text
+                          style={
+                            styles.historyWeight
+                          }
+                        >
                           {entry.weight} lbs
                         </Text>
 
-                        <Text style={styles.historyDate}>
-                          {formatDate(entry.loggedDate)}
+                        <Text
+                          style={
+                            styles.historyDate
+                          }
+                        >
+                          {formatDate(
+                            entry.loggedDate
+                          )}
                         </Text>
                       </View>
 
                       {isDeleting && (
                         <ActivityIndicator
-                          color={colors.danger}
+                          color={
+                            colors.danger
+                          }
                         />
                       )}
                     </View>
 
-                    <View style={styles.actionRow}>
+                    <View
+                      style={
+                        styles.actionRow
+                      }
+                    >
                       <Pressable
                         onPress={() =>
                           startEditing(
                             entry.id,
-                            entry.weight
+                            entry.weight,
+                            entry.loggedDate
                           )
                         }
-                        disabled={isDeleting}
-                        style={({ pressed }) => [
+                        disabled={
+                          isDeleting
+                        }
+                        style={({
+                          pressed,
+                        }) => [
                           styles.secondaryButton,
-                          pressed && styles.buttonPressed,
+                          pressed &&
+                            styles.buttonPressed,
                         ]}
                       >
-                        <Text style={styles.secondaryButtonText}>
+                        <Text
+                          style={
+                            styles.secondaryButtonText
+                          }
+                        >
                           EDIT
                         </Text>
                       </Pressable>
 
                       <Pressable
                         onPress={() =>
-                          handleDeleteWeight(entry.id)
+                          handleDeleteWeight(
+                            entry.id
+                          )
                         }
-                        disabled={isDeleting}
-                        style={({ pressed }) => [
+                        disabled={
+                          isDeleting
+                        }
+                        style={({
+                          pressed,
+                        }) => [
                           styles.deleteButton,
-                          pressed && styles.buttonPressed,
-                          isDeleting && styles.buttonDisabled,
+                          pressed &&
+                            styles.buttonPressed,
+                          isDeleting &&
+                            styles.buttonDisabled,
                         ]}
                       >
-                        <Text style={styles.deleteButtonText}>
+                        <Text
+                          style={
+                            styles.deleteButtonText
+                          }
+                        >
                           DELETE
                         </Text>
                       </Pressable>
@@ -559,7 +1124,8 @@ const styles = StyleSheet.create({
   progressTrack: {
     width: '100%',
     height: 10,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor:
+      colors.surfaceSecondary,
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
   },
@@ -597,6 +1163,45 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.small,
   },
+  workoutStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  workoutStat: {
+    width: '48%',
+    minHeight: 92,
+    backgroundColor:
+      colors.surfaceSecondary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    justifyContent: 'center',
+  },
+  workoutStatValue: {
+    color: colors.primary,
+    fontSize: fontSize.title,
+    fontWeight: '700',
+  },
+  workoutStatLabel: {
+    marginTop: spacing.xs,
+    color: colors.textSecondary,
+    fontSize: fontSize.small,
+  },
+  workoutChartSection: {
+    paddingTop: spacing.sm,
+  },
+  formGroup: {
+    gap: spacing.sm,
+  },
+  editFormGroup: {
+    gap: spacing.xs,
+  },
+  inputLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.small,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -605,13 +1210,30 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 48,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor:
+      colors.surfaceSecondary,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: borderRadius.md,
     color: colors.text,
     fontSize: fontSize.body,
     paddingHorizontal: spacing.md,
+  },
+  dateInput: {
+    width: '100%',
+    height: 48,
+    backgroundColor:
+      colors.surfaceSecondary,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    color: colors.text,
+    fontSize: fontSize.body,
+    paddingHorizontal: spacing.md,
+  },
+  helperText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.small,
   },
   unit: {
     color: colors.textSecondary,
@@ -677,7 +1299,20 @@ const styles = StyleSheet.create({
   editInput: {
     flex: 1,
     height: 44,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor:
+      colors.surfaceSecondary,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    color: colors.text,
+    fontSize: fontSize.body,
+    paddingHorizontal: spacing.md,
+  },
+  editDateInput: {
+    width: '100%',
+    height: 44,
+    backgroundColor:
+      colors.surfaceSecondary,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: borderRadius.md,
