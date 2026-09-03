@@ -19,6 +19,7 @@ import {
   fontSize,
   spacing,
 } from '../../constants/theme';
+import { useProfile } from '../../context/ProfileContext';
 import { useProgress } from '../../context/ProgressContext';
 
 export default function ProgressScreen() {
@@ -30,6 +31,11 @@ export default function ProgressScreen() {
     updateWeightEntry,
     deleteWeightEntry,
   } = useProgress();
+
+  const {
+    profile,
+    loading: profileLoading,
+  } = useProfile();
 
   const [weight, setWeight] = useState('');
   const [saving, setSaving] = useState(false);
@@ -143,6 +149,49 @@ export default function ProgressScreen() {
     });
   }
 
+  const startingWeight =
+    weightEntries.length > 0
+      ? weightEntries[weightEntries.length - 1].weight
+      : null;
+
+  const goalWeight = profile?.goalWeight ?? null;
+
+  let goalProgress = 0;
+  let weightChanged = 0;
+  let weightRemaining = 0;
+
+  if (
+    startingWeight !== null &&
+    currentWeight !== null &&
+    goalWeight !== null
+  ) {
+    const totalGoalDistance = goalWeight - startingWeight;
+    const currentDistance = currentWeight - startingWeight;
+
+    if (totalGoalDistance !== 0) {
+      goalProgress =
+        (currentDistance / totalGoalDistance) * 100;
+    }
+
+    goalProgress = Math.max(
+      0,
+      Math.min(100, goalProgress)
+    );
+
+    weightChanged = Math.abs(
+      currentWeight - startingWeight
+    );
+
+    weightRemaining = Math.abs(
+      currentWeight - goalWeight
+    );
+  }
+
+  const isWeightLossGoal =
+    startingWeight !== null &&
+    goalWeight !== null &&
+    goalWeight < startingWeight;
+
   return (
     <ScrollView
       style={styles.screen}
@@ -167,6 +216,86 @@ export default function ProgressScreen() {
               ? `${currentWeight} lbs`
               : 'No weight logged'}
           </Text>
+        )}
+      </AppCard>
+
+      <AppCard>
+        <Text style={styles.cardTitle}>Goal Progress</Text>
+
+        {loading || profileLoading ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : startingWeight === null ? (
+          <Text style={styles.emptyText}>
+            Log your weight to begin tracking goal progress.
+          </Text>
+        ) : goalWeight === null ? (
+          <Text style={styles.emptyText}>
+            Set a goal weight in your Profile to track progress.
+          </Text>
+        ) : (
+          <>
+            <View style={styles.goalWeightRow}>
+              <View style={styles.goalWeightColumn}>
+                <Text style={styles.goalLabel}>START</Text>
+                <Text style={styles.goalWeightValue}>
+                  {startingWeight} lbs
+                </Text>
+              </View>
+
+              <View style={styles.goalWeightColumnCenter}>
+                <Text style={styles.goalLabel}>CURRENT</Text>
+                <Text style={styles.goalCurrentValue}>
+                  {currentWeight} lbs
+                </Text>
+              </View>
+
+              <View style={styles.goalWeightColumnRight}>
+                <Text style={styles.goalLabel}>GOAL</Text>
+                <Text style={styles.goalWeightValue}>
+                  {goalWeight} lbs
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${goalProgress}%`,
+                  },
+                ]}
+              />
+            </View>
+
+            <Text style={styles.progressPercent}>
+              {Math.round(goalProgress)}% toward goal
+            </Text>
+
+            <View style={styles.goalStatsRow}>
+              <View style={styles.goalStat}>
+                <Text style={styles.goalStatValue}>
+                  {weightChanged.toFixed(1)}
+                </Text>
+
+                <Text style={styles.goalStatLabel}>
+                  lbs {isWeightLossGoal ? 'lost' : 'gained'}
+                </Text>
+              </View>
+
+              <View style={styles.goalStatDivider} />
+
+              <View style={styles.goalStat}>
+                <Text style={styles.goalStatValue}>
+                  {weightRemaining.toFixed(1)}
+                </Text>
+
+                <Text style={styles.goalStatLabel}>
+                  lbs remaining
+                </Text>
+              </View>
+            </View>
+          </>
         )}
       </AppCard>
 
@@ -391,6 +520,82 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.subtitle,
     fontWeight: '700',
+  },
+  goalWeightRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  goalWeightColumn: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  goalWeightColumnCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  goalWeightColumnRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  goalLabel: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  goalWeightValue: {
+    marginTop: spacing.xs,
+    color: colors.text,
+    fontSize: fontSize.body,
+    fontWeight: '700',
+  },
+  goalCurrentValue: {
+    marginTop: spacing.xs,
+    color: colors.primary,
+    fontSize: fontSize.body,
+    fontWeight: '700',
+  },
+  progressTrack: {
+    width: '100%',
+    height: 10,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.xl,
+  },
+  progressPercent: {
+    color: colors.textSecondary,
+    fontSize: fontSize.small,
+    textAlign: 'center',
+  },
+  goalStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+  },
+  goalStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  goalStatDivider: {
+    width: 1,
+    height: 44,
+    backgroundColor: colors.border,
+  },
+  goalStatValue: {
+    color: colors.text,
+    fontSize: fontSize.subtitle,
+    fontWeight: '700',
+  },
+  goalStatLabel: {
+    marginTop: spacing.xs,
+    color: colors.textSecondary,
+    fontSize: fontSize.small,
   },
   inputRow: {
     flexDirection: 'row',
