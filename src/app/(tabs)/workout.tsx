@@ -1,5 +1,8 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import {
+  useEffect,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,7 +21,267 @@ import {
   fontSize,
   spacing,
 } from '../../constants/theme';
-import { useWorkout } from '../../context/WorkoutContext';
+import {
+  useWorkout,
+  type WorkoutSet,
+} from '../../context/WorkoutContext';
+
+type SetRowProps = {
+  set: WorkoutSet;
+  deleting: boolean;
+  onSave: (
+    setId: string,
+    weight: number | null,
+    reps: number | null,
+    completed: boolean
+  ) => Promise<void>;
+  onToggleCompleted: (
+    setId: string,
+    weight: number | null,
+    reps: number | null,
+    completed: boolean
+  ) => Promise<void>;
+  onDelete: (
+    setId: string,
+    setNumber: number
+  ) => void;
+};
+
+function parseNumberInput(
+  value: string
+) {
+  const trimmedValue = value.trim();
+
+  if (trimmedValue === '') {
+    return null;
+  }
+
+  const parsedValue =
+    Number(trimmedValue);
+
+  if (Number.isNaN(parsedValue)) {
+    return null;
+  }
+
+  return parsedValue;
+}
+
+function SetRow({
+  set,
+  deleting,
+  onSave,
+  onToggleCompleted,
+  onDelete,
+}: SetRowProps) {
+  const [
+    weightInput,
+    setWeightInput,
+  ] = useState(
+    set.weight === null
+      ? ''
+      : String(set.weight)
+  );
+
+  const [
+    repsInput,
+    setRepsInput,
+  ] = useState(
+    set.reps === null
+      ? ''
+      : String(set.reps)
+  );
+
+  const [saving, setSaving] =
+    useState(false);
+
+  useEffect(() => {
+    setWeightInput(
+      set.weight === null
+        ? ''
+        : String(set.weight)
+    );
+  }, [set.weight]);
+
+  useEffect(() => {
+    setRepsInput(
+      set.reps === null
+        ? ''
+        : String(set.reps)
+    );
+  }, [set.reps]);
+
+  async function saveCurrentValues() {
+    const weight =
+      parseNumberInput(weightInput);
+
+    const reps =
+      parseNumberInput(repsInput);
+
+    const weightUnchanged =
+      weight === set.weight;
+
+    const repsUnchanged =
+      reps === set.reps;
+
+    if (
+      weightUnchanged &&
+      repsUnchanged
+    ) {
+      return;
+    }
+
+    setSaving(true);
+
+    await onSave(
+      set.id,
+      weight,
+      reps,
+      set.completed
+    );
+
+    setSaving(false);
+  }
+
+  async function toggleCompleted() {
+    const weight =
+      parseNumberInput(weightInput);
+
+    const reps =
+      parseNumberInput(repsInput);
+
+    setSaving(true);
+
+    await onToggleCompleted(
+      set.id,
+      weight,
+      reps,
+      set.completed
+    );
+
+    setSaving(false);
+  }
+
+  return (
+    <View style={styles.setRow}>
+      <View
+        style={[
+          styles.setNumberCell,
+          styles.setNumberColumn,
+        ]}
+      >
+        <Text
+          style={styles.setNumberText}
+        >
+          {set.setNumber}
+        </Text>
+      </View>
+
+      <TextInput
+        style={[
+          styles.setInput,
+          styles.inputColumn,
+        ]}
+        value={weightInput}
+        onChangeText={
+          setWeightInput
+        }
+        onBlur={
+          saveCurrentValues
+        }
+        placeholder="0"
+        placeholderTextColor={
+          colors.textSecondary
+        }
+        keyboardType="decimal-pad"
+        editable={!saving}
+      />
+
+      <TextInput
+        style={[
+          styles.setInput,
+          styles.inputColumn,
+        ]}
+        value={repsInput}
+        onChangeText={
+          setRepsInput
+        }
+        onBlur={
+          saveCurrentValues
+        }
+        placeholder="0"
+        placeholderTextColor={
+          colors.textSecondary
+        }
+        keyboardType="number-pad"
+        editable={!saving}
+      />
+
+      <Pressable
+        style={[
+          styles.completeButton,
+          styles.doneColumn,
+          set.completed &&
+            styles.completedButton,
+        ]}
+        onPress={toggleCompleted}
+        disabled={saving}
+      >
+        {saving ? (
+          <ActivityIndicator
+            size="small"
+            color={
+              set.completed
+                ? colors.background
+                : colors.primary
+            }
+          />
+        ) : (
+          <Text
+            style={[
+              styles.completeButtonText,
+              set.completed &&
+                styles.completedButtonText,
+            ]}
+          >
+            {set.completed
+              ? '✓'
+              : '○'}
+          </Text>
+        )}
+      </Pressable>
+
+      <Pressable
+        style={
+          styles.deleteSetButton
+        }
+        disabled={
+          deleting || saving
+        }
+        onPress={() =>
+          onDelete(
+            set.id,
+            set.setNumber
+          )
+        }
+      >
+        {deleting ? (
+          <ActivityIndicator
+            size="small"
+            color={colors.danger}
+          />
+        ) : (
+          <Text
+            style={
+              styles.deleteSetText
+            }
+          >
+            ×
+          </Text>
+        )}
+      </Pressable>
+    </View>
+  );
+}
 
 export default function WorkoutScreen() {
   const router = useRouter();
@@ -30,16 +293,47 @@ export default function WorkoutScreen() {
     historyLoading,
     startWorkout,
     addExercise,
+    deleteExercise,
     addSet,
     updateSet,
+    deleteSet,
     finishWorkout,
     clearActiveWorkout,
   } = useWorkout();
 
-  const [workoutName, setWorkoutName] = useState('');
-  const [exerciseName, setExerciseName] = useState('');
-  const [addingExercise, setAddingExercise] = useState(false);
-  const [finishingWorkout, setFinishingWorkout] = useState(false);
+  const [
+    workoutName,
+    setWorkoutName,
+  ] = useState('');
+
+  const [
+    exerciseName,
+    setExerciseName,
+  ] = useState('');
+
+  const [
+    addingExercise,
+    setAddingExercise,
+  ] = useState(false);
+
+  const [
+    finishingWorkout,
+    setFinishingWorkout,
+  ] = useState(false);
+
+  const [
+    deletingExerciseId,
+    setDeletingExerciseId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    deletingSetId,
+    setDeletingSetId,
+  ] = useState<string | null>(
+    null
+  );
 
   async function handleStartWorkout() {
     const name =
@@ -47,7 +341,8 @@ export default function WorkoutScreen() {
         ? 'Workout'
         : workoutName.trim();
 
-    const success = await startWorkout(name);
+    const success =
+      await startWorkout(name);
 
     if (!success) {
       showMessage(
@@ -62,7 +357,8 @@ export default function WorkoutScreen() {
   }
 
   async function handleAddExercise() {
-    const trimmedName = exerciseName.trim();
+    const trimmedName =
+      exerciseName.trim();
 
     if (!trimmedName) {
       showMessage(
@@ -75,7 +371,10 @@ export default function WorkoutScreen() {
 
     setAddingExercise(true);
 
-    const success = await addExercise(trimmedName);
+    const success =
+      await addExercise(
+        trimmedName
+      );
 
     setAddingExercise(false);
 
@@ -91,8 +390,11 @@ export default function WorkoutScreen() {
     setExerciseName('');
   }
 
-  async function handleAddSet(exerciseId: string) {
-    const success = await addSet(exerciseId);
+  async function handleAddSet(
+    exerciseId: string
+  ) {
+    const success =
+      await addSet(exerciseId);
 
     if (!success) {
       showMessage(
@@ -102,48 +404,16 @@ export default function WorkoutScreen() {
     }
   }
 
-  async function handleWeightChange(
+  async function handleSaveSet(
     setId: string,
-    text: string,
+    weight: number | null,
     reps: number | null,
     completed: boolean
   ) {
-    const value =
-      text.trim() === ''
-        ? null
-        : Number(text);
-
-    if (value !== null && Number.isNaN(value)) {
-      return;
-    }
-
-    await updateSet(
-      setId,
-      value,
-      reps,
-      completed
-    );
-  }
-
-  async function handleRepsChange(
-    setId: string,
-    text: string,
-    weight: number | null,
-    completed: boolean
-  ) {
-    const value =
-      text.trim() === ''
-        ? null
-        : Number(text);
-
-    if (value !== null && Number.isNaN(value)) {
-      return;
-    }
-
     await updateSet(
       setId,
       weight,
-      value,
+      reps,
       completed
     );
   }
@@ -167,17 +437,141 @@ export default function WorkoutScreen() {
     message: string
   ) {
     if (Platform.OS === 'web') {
-      window.alert(`${title}\n\n${message}`);
+      window.alert(
+        `${title}\n\n${message}`
+      );
+
       return;
     }
 
-    Alert.alert(title, message);
+    Alert.alert(
+      title,
+      message
+    );
+  }
+
+  async function removeExercise(
+    exerciseId: string
+  ) {
+    setDeletingExerciseId(
+      exerciseId
+    );
+
+    const success =
+      await deleteExercise(
+        exerciseId
+      );
+
+    setDeletingExerciseId(null);
+
+    if (!success) {
+      showMessage(
+        'Unable to remove exercise',
+        'There was a problem deleting this exercise.'
+      );
+    }
+  }
+
+  function confirmDeleteExercise(
+    exerciseId: string,
+    exerciseNameToDelete: string
+  ) {
+    const message =
+      `Remove ${exerciseNameToDelete}? ` +
+      'All sets inside this exercise will also be deleted.';
+
+    if (Platform.OS === 'web') {
+      const confirmed =
+        window.confirm(message);
+
+      if (confirmed) {
+        removeExercise(
+          exerciseId
+        );
+      }
+
+      return;
+    }
+
+    Alert.alert(
+      'Remove Exercise',
+      message,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () =>
+            removeExercise(
+              exerciseId
+            ),
+        },
+      ]
+    );
+  }
+
+  async function removeSet(
+    setId: string
+  ) {
+    setDeletingSetId(setId);
+
+    const success =
+      await deleteSet(setId);
+
+    setDeletingSetId(null);
+
+    if (!success) {
+      showMessage(
+        'Unable to remove set',
+        'There was a problem deleting this set.'
+      );
+    }
+  }
+
+  function confirmDeleteSet(
+    setId: string,
+    setNumber: number
+  ) {
+    const message =
+      `Remove set ${setNumber}?`;
+
+    if (Platform.OS === 'web') {
+      const confirmed =
+        window.confirm(message);
+
+      if (confirmed) {
+        removeSet(setId);
+      }
+
+      return;
+    }
+
+    Alert.alert(
+      'Remove Set',
+      message,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () =>
+            removeSet(setId),
+        },
+      ]
+    );
   }
 
   async function completeWorkout() {
     setFinishingWorkout(true);
 
-    const success = await finishWorkout();
+    const success =
+      await finishWorkout();
 
     setFinishingWorkout(false);
 
@@ -200,9 +594,10 @@ export default function WorkoutScreen() {
 
   function confirmFinishWorkout() {
     if (Platform.OS === 'web') {
-      const confirmed = window.confirm(
-        'Finish this workout? Your completed workout will be saved.'
-      );
+      const confirmed =
+        window.confirm(
+          'Finish this workout? Your completed workout will be saved.'
+        );
 
       if (confirmed) {
         completeWorkout();
@@ -221,16 +616,20 @@ export default function WorkoutScreen() {
         },
         {
           text: 'Finish',
-          onPress: completeWorkout,
+          onPress:
+            completeWorkout,
         },
       ]
     );
   }
 
-  function formatWorkoutDate(date: string) {
-    const parsedDate = new Date(
-      `${date}T00:00:00`
-    );
+  function formatWorkoutDate(
+    date: string
+  ) {
+    const parsedDate =
+      new Date(
+        `${date}T00:00:00`
+      );
 
     return parsedDate.toLocaleDateString(
       undefined,
@@ -242,9 +641,12 @@ export default function WorkoutScreen() {
     );
   }
 
-  function openWorkoutDetails(workoutId: string) {
+  function openWorkoutDetails(
+    workoutId: string
+  ) {
     router.push({
-      pathname: '/workout/details',
+      pathname:
+        '/workout/details',
       params: {
         workoutId,
       },
@@ -254,11 +656,15 @@ export default function WorkoutScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={
+        styles.container
+      }
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Text style={styles.screenTitle}>
+        <Text
+          style={styles.screenTitle}
+        >
           Workout
         </Text>
 
@@ -268,50 +674,106 @@ export default function WorkoutScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.loadingContainer}>
+        <View
+          style={
+            styles.loadingContainer
+          }
+        >
           <ActivityIndicator
             size="large"
             color={colors.primary}
           />
 
-          <Text style={styles.loadingText}>
+          <Text
+            style={
+              styles.loadingText
+            }
+          >
             Loading workout...
           </Text>
         </View>
       ) : activeWorkout ? (
         <>
           <AppCard>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>
-                {activeWorkout.name}
+            <View
+              style={
+                styles.cardHeader
+              }
+            >
+              <Text
+                style={
+                  styles.cardTitle
+                }
+              >
+                {
+                  activeWorkout.name
+                }
               </Text>
 
-              <Text style={styles.activeText}>
+              <Text
+                style={
+                  styles.activeText
+                }
+              >
                 ACTIVE
               </Text>
             </View>
 
-            <View style={styles.statRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>
-                  {activeWorkout.exercises.length}
+            <View
+              style={styles.statRow}
+            >
+              <View
+                style={
+                  styles.statItem
+                }
+              >
+                <Text
+                  style={
+                    styles.statValue
+                  }
+                >
+                  {
+                    activeWorkout
+                      .exercises.length
+                  }
                 </Text>
 
-                <Text style={styles.statLabel}>
+                <Text
+                  style={
+                    styles.statLabel
+                  }
+                >
                   Exercises
                 </Text>
               </View>
 
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>
+              <View
+                style={
+                  styles.statItem
+                }
+              >
+                <Text
+                  style={
+                    styles.statValue
+                  }
+                >
                   {activeWorkout.exercises.reduce(
-                    (total, exercise) =>
-                      total + exercise.sets.length,
+                    (
+                      total,
+                      exercise
+                    ) =>
+                      total +
+                      exercise.sets
+                        .length,
                     0
                   )}
                 </Text>
 
-                <Text style={styles.statLabel}>
+                <Text
+                  style={
+                    styles.statLabel
+                  }
+                >
                   Sets
                 </Text>
               </View>
@@ -319,19 +781,33 @@ export default function WorkoutScreen() {
           </AppCard>
 
           <AppCard>
-            <Text style={styles.cardTitle}>
+            <Text
+              style={
+                styles.cardTitle
+              }
+            >
               Add Exercise
             </Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
+            <View
+              style={
+                styles.inputGroup
+              }
+            >
+              <Text
+                style={styles.label}
+              >
                 EXERCISE NAME
               </Text>
 
               <TextInput
                 style={styles.input}
-                value={exerciseName}
-                onChangeText={setExerciseName}
+                value={
+                  exerciseName
+                }
+                onChangeText={
+                  setExerciseName
+                }
                 placeholder="Bench Press"
                 placeholderTextColor={
                   colors.textSecondary
@@ -345,37 +821,72 @@ export default function WorkoutScreen() {
                 addingExercise &&
                   styles.disabledButton,
               ]}
-              onPress={handleAddExercise}
-              disabled={addingExercise}
+              onPress={
+                handleAddExercise
+              }
+              disabled={
+                addingExercise
+              }
             >
               {addingExercise ? (
                 <ActivityIndicator
-                  color={colors.background}
+                  color={
+                    colors.background
+                  }
                 />
               ) : (
-                <Text style={styles.primaryButtonText}>
+                <Text
+                  style={
+                    styles.primaryButtonText
+                  }
+                >
                   ADD EXERCISE
                 </Text>
               )}
             </Pressable>
           </AppCard>
 
-          {activeWorkout.exercises.length === 0 ? (
+          {activeWorkout.exercises
+            .length === 0 ? (
             <AppCard>
-              <Text style={styles.emptyTitle}>
+              <Text
+                style={
+                  styles.emptyTitle
+                }
+              >
                 No exercises yet
               </Text>
 
-              <Text style={styles.secondaryText}>
-                Add your first exercise above.
+              <Text
+                style={
+                  styles.secondaryText
+                }
+              >
+                Add your first
+                exercise above.
               </Text>
             </AppCard>
           ) : (
             activeWorkout.exercises.map(
-              (exercise, index) => (
-                <AppCard key={exercise.id}>
-                  <View style={styles.exerciseHeader}>
-                    <View style={styles.exerciseNumber}>
+              (
+                exercise,
+                index
+              ) => (
+                <AppCard
+                  key={
+                    exercise.id
+                  }
+                >
+                  <View
+                    style={
+                      styles.exerciseHeader
+                    }
+                  >
+                    <View
+                      style={
+                        styles.exerciseNumber
+                      }
+                    >
                       <Text
                         style={
                           styles.exerciseNumberText
@@ -385,23 +896,86 @@ export default function WorkoutScreen() {
                       </Text>
                     </View>
 
-                    <View style={styles.exerciseInfo}>
-                      <Text style={styles.exerciseName}>
-                        {exercise.exerciseName}
+                    <View
+                      style={
+                        styles.exerciseInfo
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.exerciseName
+                        }
+                      >
+                        {
+                          exercise.exerciseName
+                        }
                       </Text>
 
-                      <Text style={styles.secondaryText}>
-                        {exercise.sets.length}{' '}
-                        {exercise.sets.length === 1
+                      <Text
+                        style={
+                          styles.secondaryText
+                        }
+                      >
+                        {
+                          exercise
+                            .sets
+                            .length
+                        }{' '}
+                        {exercise.sets
+                          .length === 1
                           ? 'set'
                           : 'sets'}
                       </Text>
                     </View>
+
+                    <Pressable
+                      onPress={() =>
+                        confirmDeleteExercise(
+                          exercise.id,
+                          exercise.exerciseName
+                        )
+                      }
+                      disabled={
+                        deletingExerciseId ===
+                        exercise.id
+                      }
+                      style={
+                        styles.removeExerciseButton
+                      }
+                      hitSlop={8}
+                    >
+                      {deletingExerciseId ===
+                      exercise.id ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={
+                            colors.danger
+                          }
+                        />
+                      ) : (
+                        <Text
+                          style={
+                            styles.removeExerciseText
+                          }
+                        >
+                          REMOVE
+                        </Text>
+                      )}
+                    </Pressable>
                   </View>
 
-                  {exercise.sets.length > 0 && (
-                    <View style={styles.setTable}>
-                      <View style={styles.setHeaderRow}>
+                  {exercise.sets
+                    .length > 0 && (
+                    <View
+                      style={
+                        styles.setTable
+                      }
+                    >
+                      <View
+                        style={
+                          styles.setHeaderRow
+                        }
+                      >
                         <Text
                           style={[
                             styles.setHeaderText,
@@ -437,113 +1011,48 @@ export default function WorkoutScreen() {
                         >
                           DONE
                         </Text>
+
+                        <View
+                          style={
+                            styles.deleteColumn
+                          }
+                        />
                       </View>
 
-                      {exercise.sets.map((set) => (
-                        <View
-                          key={set.id}
-                          style={styles.setRow}
-                        >
-                          <View
-                            style={[
-                              styles.setNumberCell,
-                              styles.setNumberColumn,
-                            ]}
-                          >
-                            <Text
-                              style={
-                                styles.setNumberText
-                              }
-                            >
-                              {set.setNumber}
-                            </Text>
-                          </View>
-
-                          <TextInput
-                            style={[
-                              styles.setInput,
-                              styles.inputColumn,
-                            ]}
-                            value={
-                              set.weight === null
-                                ? ''
-                                : String(set.weight)
+                      {exercise.sets.map(
+                        (set) => (
+                          <SetRow
+                            key={
+                              set.id
                             }
-                            onChangeText={(text) =>
-                              handleWeightChange(
-                                set.id,
-                                text,
-                                set.reps,
-                                set.completed
-                              )
+                            set={set}
+                            deleting={
+                              deletingSetId ===
+                              set.id
                             }
-                            placeholder="0"
-                            placeholderTextColor={
-                              colors.textSecondary
+                            onSave={
+                              handleSaveSet
                             }
-                            keyboardType="decimal-pad"
+                            onToggleCompleted={
+                              handleToggleCompleted
+                            }
+                            onDelete={
+                              confirmDeleteSet
+                            }
                           />
-
-                          <TextInput
-                            style={[
-                              styles.setInput,
-                              styles.inputColumn,
-                            ]}
-                            value={
-                              set.reps === null
-                                ? ''
-                                : String(set.reps)
-                            }
-                            onChangeText={(text) =>
-                              handleRepsChange(
-                                set.id,
-                                text,
-                                set.weight,
-                                set.completed
-                              )
-                            }
-                            placeholder="0"
-                            placeholderTextColor={
-                              colors.textSecondary
-                            }
-                            keyboardType="number-pad"
-                          />
-
-                          <Pressable
-                            style={[
-                              styles.completeButton,
-                              styles.doneColumn,
-                              set.completed &&
-                                styles.completedButton,
-                            ]}
-                            onPress={() =>
-                              handleToggleCompleted(
-                                set.id,
-                                set.weight,
-                                set.reps,
-                                set.completed
-                              )
-                            }
-                          >
-                            <Text
-                              style={[
-                                styles.completeButtonText,
-                                set.completed &&
-                                  styles.completedButtonText,
-                              ]}
-                            >
-                              {set.completed ? '✓' : '○'}
-                            </Text>
-                          </Pressable>
-                        </View>
-                      ))}
+                        )
+                      )}
                     </View>
                   )}
 
                   <Pressable
-                    style={styles.addSetButton}
+                    style={
+                      styles.addSetButton
+                    }
                     onPress={() =>
-                      handleAddSet(exercise.id)
+                      handleAddSet(
+                        exercise.id
+                      )
                     }
                   >
                     <Text
@@ -565,158 +1074,291 @@ export default function WorkoutScreen() {
               finishingWorkout &&
                 styles.disabledButton,
             ]}
-            onPress={confirmFinishWorkout}
-            disabled={finishingWorkout}
+            onPress={
+              confirmFinishWorkout
+            }
+            disabled={
+              finishingWorkout
+            }
           >
             {finishingWorkout ? (
               <ActivityIndicator
-                color={colors.text}
+                color={
+                  colors.text
+                }
               />
             ) : (
-              <Text style={styles.finishButtonText}>
+              <Text
+                style={
+                  styles.finishButtonText
+                }
+              >
                 FINISH WORKOUT
               </Text>
             )}
           </Pressable>
         </>
       ) : (
-        <>
-          <AppCard>
-            <Text style={styles.cardTitle}>
-              Start a Workout
-            </Text>
+        <AppCard>
+          <Text
+            style={
+              styles.cardTitle
+            }
+          >
+            Start a Workout
+          </Text>
 
-            <Text style={styles.secondaryText}>
-              Give your workout a name, or leave it
-              blank to use "Workout".
-            </Text>
+          <Text
+            style={
+              styles.secondaryText
+            }
+          >
+            Give your workout a
+            name, or leave it blank
+            to use "Workout".
+          </Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                WORKOUT NAME
-              </Text>
-
-              <TextInput
-                style={styles.input}
-                value={workoutName}
-                onChangeText={setWorkoutName}
-                placeholder="Push Day"
-                placeholderTextColor={
-                  colors.textSecondary
-                }
-              />
-            </View>
-
-            <Pressable
-              style={styles.primaryButton}
-              onPress={handleStartWorkout}
+          <View
+            style={
+              styles.inputGroup
+            }
+          >
+            <Text
+              style={styles.label}
             >
-              <Text style={styles.primaryButtonText}>
-                START WORKOUT
-              </Text>
-            </Pressable>
-          </AppCard>
+              WORKOUT NAME
+            </Text>
 
-          <View style={styles.historyHeader}>
-            <Text style={styles.sectionTitle}>
+            <TextInput
+              style={styles.input}
+              value={workoutName}
+              onChangeText={
+                setWorkoutName
+              }
+              placeholder="Push Day"
+              placeholderTextColor={
+                colors.textSecondary
+              }
+            />
+          </View>
+
+          <Pressable
+            style={
+              styles.primaryButton
+            }
+            onPress={
+              handleStartWorkout
+            }
+          >
+            <Text
+              style={
+                styles.primaryButtonText
+              }
+            >
+              START WORKOUT
+            </Text>
+          </Pressable>
+        </AppCard>
+      )}
+
+      {!loading && (
+        <>
+          <View
+            style={
+              styles.historyHeader
+            }
+          >
+            <Text
+              style={
+                styles.sectionTitle
+              }
+            >
               Workout History
             </Text>
 
-            <Text style={styles.historyCount}>
-              {workoutHistory.length}
+            <Text
+              style={
+                styles.historyCount
+              }
+            >
+              {
+                workoutHistory.length
+              }
             </Text>
           </View>
 
           {historyLoading ? (
-            <View style={styles.historyLoading}>
+            <View
+              style={
+                styles.historyLoading
+              }
+            >
               <ActivityIndicator
-                color={colors.primary}
+                color={
+                  colors.primary
+                }
               />
             </View>
-          ) : workoutHistory.length === 0 ? (
+          ) : workoutHistory.length ===
+            0 ? (
             <AppCard>
-              <Text style={styles.emptyTitle}>
+              <Text
+                style={
+                  styles.emptyTitle
+                }
+              >
                 No completed workouts
               </Text>
 
-              <Text style={styles.secondaryText}>
-                Finish a workout and it will appear here.
+              <Text
+                style={
+                  styles.secondaryText
+                }
+              >
+                Finish a workout and
+                it will appear here.
               </Text>
             </AppCard>
           ) : (
-            workoutHistory.map((workout) => (
-              <Pressable
-                key={workout.id}
-                onPress={() =>
-                  openWorkoutDetails(workout.id)
-                }
-                style={({ pressed }) => [
-                  styles.historyPressable,
-                  pressed &&
-                    styles.historyPressablePressed,
-                ]}
-              >
-                <AppCard>
-                  <View style={styles.historyCardHeader}>
-                    <View style={styles.historyInfo}>
-                      <Text style={styles.historyName}>
-                        {workout.name}
-                      </Text>
+            workoutHistory.map(
+              (workout) => (
+                <Pressable
+                  key={
+                    workout.id
+                  }
+                  onPress={() =>
+                    openWorkoutDetails(
+                      workout.id
+                    )
+                  }
+                  style={({
+                    pressed,
+                  }) => [
+                    styles.historyPressable,
+                    pressed &&
+                      styles.historyPressablePressed,
+                  ]}
+                >
+                  <AppCard>
+                    <View
+                      style={
+                        styles.historyCardHeader
+                      }
+                    >
+                      <View
+                        style={
+                          styles.historyInfo
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.historyName
+                          }
+                        >
+                          {
+                            workout.name
+                          }
+                        </Text>
 
-                      <Text style={styles.historyDate}>
-                        {formatWorkoutDate(
-                          workout.workoutDate
-                        )}
-                      </Text>
+                        <Text
+                          style={
+                            styles.historyDate
+                          }
+                        >
+                          {formatWorkoutDate(
+                            workout.workoutDate
+                          )}
+                        </Text>
+                      </View>
+
+                      <View
+                        style={
+                          styles.historyRight
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.completedText
+                          }
+                        >
+                          COMPLETE
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.chevron
+                          }
+                        >
+                          ›
+                        </Text>
+                      </View>
                     </View>
 
-                    <View style={styles.historyRight}>
-                      <Text style={styles.completedText}>
-                        COMPLETE
-                      </Text>
+                    <View
+                      style={
+                        styles.historyStatRow
+                      }
+                    >
+                      <View
+                        style={
+                          styles.historyStat
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.historyStatValue
+                          }
+                        >
+                          {
+                            workout.exerciseCount
+                          }
+                        </Text>
 
-                      <Text style={styles.chevron}>
-                        ›
-                      </Text>
+                        <Text
+                          style={
+                            styles.historyStatLabel
+                          }
+                        >
+                          Exercises
+                        </Text>
+                      </View>
+
+                      <View
+                        style={
+                          styles.historyStat
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.historyStatValue
+                          }
+                        >
+                          {
+                            workout.setCount
+                          }
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.historyStatLabel
+                          }
+                        >
+                          Sets
+                        </Text>
+                      </View>
                     </View>
-                  </View>
 
-                  <View style={styles.historyStatRow}>
-                    <View style={styles.historyStat}>
-                      <Text
-                        style={styles.historyStatValue}
-                      >
-                        {workout.exerciseCount}
-                      </Text>
-
-                      <Text
-                        style={styles.historyStatLabel}
-                      >
-                        Exercises
-                      </Text>
-                    </View>
-
-                    <View style={styles.historyStat}>
-                      <Text
-                        style={styles.historyStatValue}
-                      >
-                        {workout.setCount}
-                      </Text>
-
-                      <Text
-                        style={styles.historyStatLabel}
-                      >
-                        Sets
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={styles.viewWorkoutText}>
-                    VIEW WORKOUT
-                  </Text>
-                </AppCard>
-              </Pressable>
-            ))
+                    <Text
+                      style={
+                        styles.viewWorkoutText
+                      }
+                    >
+                      VIEW WORKOUT
+                    </Text>
+                  </AppCard>
+                </Pressable>
+              )
+            )
           )}
         </>
       )}
@@ -727,7 +1369,8 @@ export default function WorkoutScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor:
+      colors.background,
   },
 
   container: {
@@ -742,12 +1385,14 @@ const styles = StyleSheet.create({
 
   screenTitle: {
     color: colors.text,
-    fontSize: fontSize.screenTitle,
+    fontSize:
+      fontSize.screenTitle,
     fontWeight: '700',
   },
 
   subtitle: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: fontSize.body,
     marginTop: spacing.xs,
   },
@@ -755,18 +1400,21 @@ const styles = StyleSheet.create({
   loadingContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xxl,
+    paddingVertical:
+      spacing.xxl,
     gap: spacing.md,
   },
 
   loadingText: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: fontSize.body,
   },
 
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent:
+      'space-between',
     alignItems: 'center',
     gap: spacing.md,
   },
@@ -785,7 +1433,8 @@ const styles = StyleSheet.create({
   },
 
   secondaryText: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: fontSize.body,
   },
 
@@ -794,25 +1443,29 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: fontSize.small,
     fontWeight: '600',
     letterSpacing: 1,
   },
 
   input: {
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor:
+      colors.surfaceSecondary,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 12,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal:
+      spacing.md,
     paddingVertical: spacing.md,
     color: colors.text,
     fontSize: fontSize.body,
   },
 
   primaryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor:
+      colors.primary,
     paddingVertical: spacing.md,
     borderRadius: 12,
     alignItems: 'center',
@@ -835,7 +1488,8 @@ const styles = StyleSheet.create({
 
   statItem: {
     flex: 1,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor:
+      colors.surfaceSecondary,
     borderRadius: 12,
     padding: spacing.md,
     alignItems: 'center',
@@ -848,14 +1502,16 @@ const styles = StyleSheet.create({
   },
 
   statLabel: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: fontSize.small,
     marginTop: spacing.xs,
   },
 
   emptyTitle: {
     color: colors.text,
-    fontSize: fontSize.subtitle,
+    fontSize:
+      fontSize.subtitle,
     fontWeight: '600',
   },
 
@@ -869,7 +1525,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor:
+      colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -886,8 +1543,23 @@ const styles = StyleSheet.create({
 
   exerciseName: {
     color: colors.text,
-    fontSize: fontSize.subtitle,
+    fontSize:
+      fontSize.subtitle,
     fontWeight: '600',
+  },
+
+  removeExerciseButton: {
+    minWidth: 64,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  removeExerciseText: {
+    color: colors.danger,
+    fontSize: fontSize.small,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 
   setTable: {
@@ -903,7 +1575,8 @@ const styles = StyleSheet.create({
   },
 
   setHeaderText: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: 10,
     fontWeight: '700',
     textAlign: 'center',
@@ -931,6 +1604,11 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 
+  deleteColumn: {
+    width: 34,
+    flexShrink: 0,
+  },
+
   setNumberCell: {
     height: 44,
     justifyContent: 'center',
@@ -946,7 +1624,8 @@ const styles = StyleSheet.create({
   setInput: {
     height: 44,
     minWidth: 0,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor:
+      colors.surfaceSecondary,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: 10,
@@ -959,7 +1638,8 @@ const styles = StyleSheet.create({
   completeButton: {
     height: 44,
     borderRadius: 10,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor:
+      colors.surfaceSecondary,
     borderColor: colors.border,
     borderWidth: 1,
     alignItems: 'center',
@@ -967,18 +1647,39 @@ const styles = StyleSheet.create({
   },
 
   completedButton: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor:
+      colors.primary,
+    borderColor:
+      colors.primary,
   },
 
   completeButtonText: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: 22,
     fontWeight: '700',
   },
 
   completedButtonText: {
-    color: colors.background,
+    color:
+      colors.background,
+  },
+
+  deleteSetButton: {
+    width: 34,
+    height: 44,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  deleteSetText: {
+    color: colors.danger,
+    fontSize: 24,
+    lineHeight: 26,
+    fontWeight: '600',
   },
 
   addSetButton: {
@@ -998,8 +1699,10 @@ const styles = StyleSheet.create({
 
   finishButton: {
     width: '100%',
-    backgroundColor: colors.surfaceSecondary,
-    borderColor: colors.primary,
+    backgroundColor:
+      colors.surfaceSecondary,
+    borderColor:
+      colors.primary,
     borderWidth: 1,
     borderRadius: 12,
     paddingVertical: spacing.md,
@@ -1016,7 +1719,8 @@ const styles = StyleSheet.create({
   historyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent:
+      'space-between',
     marginTop: spacing.sm,
   },
 
@@ -1027,13 +1731,15 @@ const styles = StyleSheet.create({
   },
 
   historyCount: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: fontSize.body,
     fontWeight: '600',
   },
 
   historyLoading: {
-    paddingVertical: spacing.lg,
+    paddingVertical:
+      spacing.lg,
     alignItems: 'center',
   },
 
@@ -1047,7 +1753,8 @@ const styles = StyleSheet.create({
 
   historyCardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent:
+      'space-between',
     alignItems: 'flex-start',
     gap: spacing.md,
   },
@@ -1058,12 +1765,14 @@ const styles = StyleSheet.create({
 
   historyName: {
     color: colors.text,
-    fontSize: fontSize.subtitle,
+    fontSize:
+      fontSize.subtitle,
     fontWeight: '700',
   },
 
   historyDate: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: fontSize.small,
     marginTop: spacing.xs,
   },
@@ -1081,7 +1790,8 @@ const styles = StyleSheet.create({
   },
 
   chevron: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: 26,
     lineHeight: 26,
   },
@@ -1093,7 +1803,8 @@ const styles = StyleSheet.create({
 
   historyStat: {
     flex: 1,
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor:
+      colors.surfaceSecondary,
     borderRadius: 10,
     padding: spacing.md,
     alignItems: 'center',
@@ -1101,12 +1812,14 @@ const styles = StyleSheet.create({
 
   historyStatValue: {
     color: colors.text,
-    fontSize: fontSize.subtitle,
+    fontSize:
+      fontSize.subtitle,
     fontWeight: '700',
   },
 
   historyStatLabel: {
-    color: colors.textSecondary,
+    color:
+      colors.textSecondary,
     fontSize: fontSize.small,
     marginTop: spacing.xs,
   },
