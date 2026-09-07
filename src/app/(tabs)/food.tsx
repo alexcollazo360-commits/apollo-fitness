@@ -16,68 +16,177 @@ import {
 import { useFood } from '../../context/FoodContext';
 import { useProfile } from '../../context/ProfileContext';
 
+const mealSections = [
+  'Breakfast',
+  'Lunch',
+  'Dinner',
+  'Snacks',
+] as const;
+
 export default function FoodScreen() {
   const router = useRouter();
 
-  const { foodEntries, deleteFoodEntry } = useFood();
-  const { profile, loading: profileLoading } = useProfile();
+  const {
+    foodEntries,
+    deleteFoodEntry,
+  } = useFood();
 
-  const calorieTarget = profile?.dailyCalorieTarget ?? 2200;
-  const proteinTarget = profile?.proteinTarget ?? 180;
-  const carbTarget = profile?.carbTarget ?? 190;
-  const fatTarget = profile?.fatTarget ?? 80;
+  const {
+    profile,
+    loading: profileLoading,
+  } = useProfile();
 
-  const totalCalories = foodEntries.reduce(
-    (total, entry) => total + entry.calories,
-    0
-  );
+  const calorieTarget =
+    profile?.dailyCalorieTarget ??
+    2200;
 
-  const totalProtein = foodEntries.reduce(
-    (total, entry) => total + entry.protein,
-    0
-  );
+  const proteinTarget =
+    profile?.proteinTarget ??
+    180;
 
-  const totalCarbs = foodEntries.reduce(
-    (total, entry) => total + entry.carbs,
-    0
-  );
+  const carbTarget =
+    profile?.carbTarget ??
+    190;
 
-  const totalFat = foodEntries.reduce(
-    (total, entry) => total + entry.fat,
-    0
-  );
+  const fatTarget =
+    profile?.fatTarget ??
+    80;
+
+  const totalCalories =
+    foodEntries.reduce(
+      (total, entry) =>
+        total + entry.calories,
+      0
+    );
+
+  const totalProtein =
+    foodEntries.reduce(
+      (total, entry) =>
+        total + entry.protein,
+      0
+    );
+
+  const totalCarbs =
+    foodEntries.reduce(
+      (total, entry) =>
+        total + entry.carbs,
+      0
+    );
+
+  const totalFat =
+    foodEntries.reduce(
+      (total, entry) =>
+        total + entry.fat,
+      0
+    );
 
   const calorieProgress =
     calorieTarget > 0
-      ? Math.min((totalCalories / calorieTarget) * 100, 100)
+      ? Math.min(
+          (totalCalories /
+            calorieTarget) *
+            100,
+          100
+        )
       : 0;
+
+  function handleAddFood() {
+    router.push(
+      '/food/add'
+    );
+  }
 
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={
+        styles.container
+      }
     >
       <View style={styles.header}>
-        <Text style={styles.screenTitle}>Food</Text>
-        <Text style={styles.subtitle}>Track today&apos;s nutrition</Text>
+        <View
+          style={
+            styles.headerText
+          }
+        >
+          <Text
+            style={
+              styles.screenTitle
+            }
+          >
+            Food
+          </Text>
+
+          <Text
+            style={styles.subtitle}
+          >
+            Track today&apos;s
+            nutrition
+          </Text>
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.addFoodButton,
+            pressed &&
+              styles.addFoodButtonPressed,
+          ]}
+          onPress={handleAddFood}
+        >
+          <Text
+            style={
+              styles.addFoodButtonText
+            }
+          >
+            + Add Food
+          </Text>
+        </Pressable>
       </View>
 
       <AppCard>
-        <Text style={styles.cardTitle}>Today&apos;s Nutrition</Text>
+        <Text
+          style={styles.cardTitle}
+        >
+          Today&apos;s Nutrition
+        </Text>
 
         <View>
-          <Text style={styles.label}>CALORIES</Text>
+          <Text
+            style={styles.label}
+          >
+            CALORIES
+          </Text>
 
-          <View style={styles.calorieRow}>
-            <Text style={styles.calorieValue}>{totalCalories}</Text>
+          <View
+            style={
+              styles.calorieRow
+            }
+          >
+            <Text
+              style={
+                styles.calorieValue
+              }
+            >
+              {totalCalories}
+            </Text>
 
-            <Text style={styles.calorieTarget}>
+            <Text
+              style={
+                styles.calorieTarget
+              }
+            >
               {' '}
-              / {calorieTarget.toLocaleString()} kcal
+              /{' '}
+              {calorieTarget.toLocaleString()}{' '}
+              kcal
             </Text>
           </View>
 
-          <View style={styles.progressTrack}>
+          <View
+            style={
+              styles.progressTrack
+            }
+          >
             <View
               style={[
                 styles.progressFill,
@@ -89,312 +198,560 @@ export default function FoodScreen() {
           </View>
         </View>
 
-        <View style={styles.macroRow}>
-          <View style={styles.macroItem}>
-            <Text style={styles.label}>PROTEIN</Text>
-            <Text style={styles.macroValue}>{totalProtein}</Text>
-            <Text style={styles.macroTarget}>
+        <View
+          style={styles.macroRow}
+        >
+          <View
+            style={styles.macroItem}
+          >
+            <Text
+              style={styles.label}
+            >
+              PROTEIN
+            </Text>
+
+            <Text
+              style={
+                styles.macroValue
+              }
+            >
+              {totalProtein}
+            </Text>
+
+            <Text
+              style={
+                styles.macroTarget
+              }
+            >
               of {proteinTarget}g
             </Text>
           </View>
 
-          <View style={styles.macroItem}>
-            <Text style={styles.label}>CARBS</Text>
-            <Text style={styles.macroValue}>{totalCarbs}</Text>
-            <Text style={styles.macroTarget}>
+          <View
+            style={styles.macroItem}
+          >
+            <Text
+              style={styles.label}
+            >
+              CARBS
+            </Text>
+
+            <Text
+              style={
+                styles.macroValue
+              }
+            >
+              {totalCarbs}
+            </Text>
+
+            <Text
+              style={
+                styles.macroTarget
+              }
+            >
               of {carbTarget}g
             </Text>
           </View>
 
-          <View style={styles.macroItem}>
-            <Text style={styles.label}>FAT</Text>
-            <Text style={styles.macroValue}>{totalFat}</Text>
-            <Text style={styles.macroTarget}>
+          <View
+            style={styles.macroItem}
+          >
+            <Text
+              style={styles.label}
+            >
+              FAT
+            </Text>
+
+            <Text
+              style={
+                styles.macroValue
+              }
+            >
+              {totalFat}
+            </Text>
+
+            <Text
+              style={
+                styles.macroTarget
+              }
+            >
               of {fatTarget}g
             </Text>
           </View>
         </View>
 
         {profileLoading && (
-          <Text style={styles.secondaryText}>
-            Loading nutrition targets...
+          <Text
+            style={
+              styles.secondaryText
+            }
+          >
+            Loading nutrition
+            targets...
           </Text>
         )}
       </AppCard>
 
-      {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map((meal) => {
-        const mealEntries = foodEntries.filter(
-          (entry) => entry.meal === meal
-        );
+      {mealSections.map(
+        (meal) => {
+          const mealEntries =
+            foodEntries.filter(
+              (entry) =>
+                entry.meal === meal
+            );
 
-        return (
-          <AppCard key={meal}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{meal}</Text>
+          const mealCalories =
+            mealEntries.reduce(
+              (total, entry) =>
+                total +
+                entry.calories,
+              0
+            );
 
-              <Pressable
-                onPress={() =>
-                  router.push({
-                    pathname: '/food/add',
-                    params: { meal },
-                  })
+          return (
+            <AppCard
+              key={meal}
+            >
+              <View
+                style={
+                  styles.cardHeader
                 }
               >
-                <Text style={styles.accentText}>+ ADD FOOD</Text>
-              </Pressable>
-            </View>
-
-            {mealEntries.length === 0 ? (
-              <>
-                <Text style={styles.emptyTitle}>No foods logged</Text>
-
-                <Text style={styles.secondaryText}>
-                  Add food to start tracking this meal.
+                <Text
+                  style={
+                    styles.cardTitle
+                  }
+                >
+                  {meal}
                 </Text>
-              </>
-            ) : (
-              mealEntries.map((entry) => (
-                <View key={entry.id} style={styles.foodEntry}>
-                  <Pressable
-                    style={styles.foodEntryContent}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/food/add',
-                        params: {
-                          id: entry.id,
-                        },
-                      })
+
+                {mealEntries.length >
+                  0 && (
+                  <Text
+                    style={
+                      styles.mealCalories
                     }
                   >
-                    <View style={styles.foodEntryInfo}>
-                      <Text style={styles.foodName}>
-                        {entry.name}
-                      </Text>
+                    {mealCalories}{' '}
+                    kcal
+                  </Text>
+                )}
+              </View>
 
-                      <Text style={styles.foodDetails}>
-                        {entry.serving || 'Serving not specified'}
-                      </Text>
-                    </View>
+              {mealEntries.length ===
+              0 ? (
+                <>
+                  <Text
+                    style={
+                      styles.emptyTitle
+                    }
+                  >
+                    No foods logged
+                  </Text>
 
-                    <View style={styles.foodNutrition}>
-                      <Text style={styles.foodCalories}>
-                        {entry.calories} kcal
-                      </Text>
-
-                      <Text style={styles.foodMacros}>
-                        P {entry.protein}g · C {entry.carbs}g · F{' '}
-                        {entry.fat}g
-                      </Text>
-                    </View>
-                  </Pressable>
-
-                  <View style={styles.entryActions}>
-                    <Pressable
-                      onPress={() =>
-                        router.push({
-                          pathname: '/food/add',
-                          params: {
-                            id: entry.id,
-                          },
-                        })
+                  <Text
+                    style={
+                      styles.secondaryText
+                    }
+                  >
+                    Foods assigned to{' '}
+                    {meal.toLowerCase()}{' '}
+                    will appear here.
+                  </Text>
+                </>
+              ) : (
+                mealEntries.map(
+                  (entry) => (
+                    <View
+                      key={entry.id}
+                      style={
+                        styles.foodEntry
                       }
                     >
-                      <Text style={styles.editButtonText}>Edit</Text>
-                    </Pressable>
+                      <Pressable
+                        style={
+                          styles.foodEntryContent
+                        }
+                        onPress={() =>
+                          router.push(
+                            {
+                              pathname:
+                                '/food/add',
+                              params: {
+                                id: entry.id,
+                              },
+                            }
+                          )
+                        }
+                      >
+                        <View
+                          style={
+                            styles.foodEntryInfo
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.foodName
+                            }
+                          >
+                            {
+                              entry.name
+                            }
+                          </Text>
 
-                    <Pressable
-                      onPress={() => deleteFoodEntry(entry.id)}
-                    >
-                      <Text style={styles.deleteButtonText}>Delete</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ))
-            )}
-          </AppCard>
-        );
-      })}
+                          <Text
+                            style={
+                              styles.foodDetails
+                            }
+                          >
+                            {entry.serving ||
+                              'Serving not specified'}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={
+                            styles.foodNutrition
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.foodCalories
+                            }
+                          >
+                            {
+                              entry.calories
+                            }{' '}
+                            kcal
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.foodMacros
+                            }
+                          >
+                            P{' '}
+                            {
+                              entry.protein
+                            }
+                            g · C{' '}
+                            {
+                              entry.carbs
+                            }
+                            g · F{' '}
+                            {
+                              entry.fat
+                            }
+                            g
+                          </Text>
+                        </View>
+                      </Pressable>
+
+                      <View
+                        style={
+                          styles.entryActions
+                        }
+                      >
+                        <Pressable
+                          onPress={() =>
+                            router.push(
+                              {
+                                pathname:
+                                  '/food/add',
+                                params: {
+                                  id: entry.id,
+                                },
+                              }
+                            )
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.editButtonText
+                            }
+                          >
+                            Edit
+                          </Text>
+                        </Pressable>
+
+                        <Pressable
+                          onPress={() =>
+                            deleteFoodEntry(
+                              entry.id
+                            )
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.deleteButtonText
+                            }
+                          >
+                            Delete
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  )
+                )
+              )}
+            </AppCard>
+          );
+        }
+      )}
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+const styles =
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor:
+        colors.background,
+    },
 
-  container: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
-    gap: spacing.md,
-  },
+    container: {
+      padding: spacing.lg,
+      paddingBottom:
+        spacing.xxl,
+      gap: spacing.md,
+    },
 
-  header: {
-    marginBottom: spacing.sm,
-  },
+    header: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginBottom:
+        spacing.sm,
+    },
 
-  screenTitle: {
-    color: colors.text,
-    fontSize: fontSize.screenTitle,
-    fontWeight: '700',
-  },
+    headerText: {
+      flex: 1,
+    },
 
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-    marginTop: spacing.xs,
-  },
+    screenTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.screenTitle,
+      fontWeight: '700',
+    },
 
-  cardTitle: {
-    color: colors.text,
-    fontSize: fontSize.title,
-    fontWeight: '600',
-  },
+    subtitle: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+      marginTop:
+        spacing.xs,
+    },
 
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
+    addFoodButton: {
+      backgroundColor:
+        colors.primary,
+      paddingHorizontal:
+        spacing.md,
+      paddingVertical:
+        spacing.sm,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
 
-  label: {
-    color: colors.textSecondary,
-    fontSize: fontSize.small,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
+    addFoodButtonPressed: {
+      opacity: 0.75,
+    },
 
-  calorieRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: spacing.xs,
-  },
+    addFoodButtonText: {
+      color:
+        colors.background,
+      fontSize:
+        fontSize.body,
+      fontWeight: '700',
+    },
 
-  calorieValue: {
-    color: colors.text,
-    fontSize: 36,
-    fontWeight: '700',
-  },
+    cardTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.title,
+      fontWeight: '600',
+    },
 
-  calorieTarget: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
 
-  progressTrack: {
-    height: 8,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: 100,
-    marginTop: spacing.sm,
-    overflow: 'hidden',
-  },
+    mealCalories: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+      fontWeight: '600',
+    },
 
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-  },
+    label: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '600',
+      letterSpacing: 1,
+    },
 
-  macroRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
+    calorieRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      marginTop:
+        spacing.xs,
+    },
 
-  macroItem: {
-    flex: 1,
-  },
+    calorieValue: {
+      color: colors.text,
+      fontSize: 36,
+      fontWeight: '700',
+    },
 
-  macroValue: {
-    color: colors.text,
-    fontSize: fontSize.title,
-    fontWeight: '700',
-    marginTop: spacing.xs,
-  },
+    calorieTarget: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+    },
 
-  macroTarget: {
-    color: colors.textSecondary,
-    fontSize: fontSize.small,
-  },
+    progressTrack: {
+      height: 8,
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius: 100,
+      marginTop:
+        spacing.sm,
+      overflow: 'hidden',
+    },
 
-  accentText: {
-    color: colors.primary,
-    fontSize: fontSize.small,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
+    progressFill: {
+      height: '100%',
+      backgroundColor:
+        colors.primary,
+    },
 
-  emptyTitle: {
-    color: colors.text,
-    fontSize: fontSize.subtitle,
-    fontWeight: '600',
-  },
+    macroRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
 
-  secondaryText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
+    macroItem: {
+      flex: 1,
+    },
 
-  foodEntry: {
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
+    macroValue: {
+      color: colors.text,
+      fontSize:
+        fontSize.title,
+      fontWeight: '700',
+      marginTop:
+        spacing.xs,
+    },
 
-  foodEntryContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
+    macroTarget: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+    },
 
-  foodEntryInfo: {
-    flex: 1,
-  },
+    emptyTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.subtitle,
+      fontWeight: '600',
+    },
 
-  foodName: {
-    color: colors.text,
-    fontSize: fontSize.body,
-    fontWeight: '600',
-  },
+    secondaryText: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+    },
 
-  foodDetails: {
-    color: colors.textSecondary,
-    fontSize: fontSize.small,
-    marginTop: spacing.xs,
-  },
+    foodEntry: {
+      borderTopColor:
+        colors.border,
+      borderTopWidth: 1,
+      paddingVertical:
+        spacing.md,
+      gap: spacing.sm,
+    },
 
-  foodNutrition: {
-    alignItems: 'flex-end',
-  },
+    foodEntryContent: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
 
-  foodCalories: {
-    color: colors.text,
-    fontSize: fontSize.body,
-    fontWeight: '600',
-  },
+    foodEntryInfo: {
+      flex: 1,
+    },
 
-  foodMacros: {
-    color: colors.textSecondary,
-    fontSize: fontSize.small,
-    marginTop: spacing.xs,
-  },
+    foodName: {
+      color: colors.text,
+      fontSize:
+        fontSize.body,
+      fontWeight: '600',
+    },
 
-  entryActions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
+    foodDetails: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      marginTop:
+        spacing.xs,
+    },
 
-  editButtonText: {
-    color: colors.primary,
-    fontSize: fontSize.small,
-    fontWeight: '600',
-  },
+    foodNutrition: {
+      alignItems: 'flex-end',
+    },
 
-  deleteButtonText: {
-    color: colors.danger,
-    fontSize: fontSize.small,
-    fontWeight: '600',
-  },
-});
+    foodCalories: {
+      color: colors.text,
+      fontSize:
+        fontSize.body,
+      fontWeight: '600',
+    },
+
+    foodMacros: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      marginTop:
+        spacing.xs,
+    },
+
+    entryActions: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+
+    editButtonText: {
+      color: colors.primary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '600',
+    },
+
+    deleteButtonText: {
+      color: colors.danger,
+      fontSize:
+        fontSize.small,
+      fontWeight: '600',
+    },
+  });

@@ -1,9 +1,9 @@
 import {
-    PropsWithChildren,
-    createContext,
-    useContext,
-    useEffect,
-    useState,
+  PropsWithChildren,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
 } from 'react';
 
 import { supabase } from '../lib/supabase';
@@ -43,11 +43,29 @@ export type WorkoutHistoryItem = {
   setCount: number;
 };
 
+export type WorkoutTemplateExercise = {
+  id: string;
+  exerciseName: string;
+  exerciseOrder: number;
+  setCount: number;
+};
+
+export type WorkoutTemplate = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  exercises: WorkoutTemplateExercise[];
+};
+
 type WorkoutContextType = {
   activeWorkout: Workout | null;
   workoutHistory: WorkoutHistoryItem[];
+  workoutTemplates: WorkoutTemplate[];
+
   loading: boolean;
   historyLoading: boolean;
+  templatesLoading: boolean;
 
   startWorkout: (
     name?: string
@@ -57,9 +75,14 @@ type WorkoutContextType = {
     workoutId: string
   ) => Promise<boolean>;
 
-  loadActiveWorkout: () => Promise<boolean>;
+  loadActiveWorkout:
+    () => Promise<boolean>;
 
-  loadWorkoutHistory: () => Promise<boolean>;
+  loadWorkoutHistory:
+    () => Promise<boolean>;
+
+  loadWorkoutTemplates:
+    () => Promise<boolean>;
 
   addExercise: (
     exerciseName: string
@@ -84,20 +107,38 @@ type WorkoutContextType = {
     setId: string
   ) => Promise<boolean>;
 
-  finishWorkout: () => Promise<boolean>;
+  finishWorkout:
+    () => Promise<boolean>;
+
+  discardActiveWorkout:
+    () => Promise<boolean>;
+
+  saveWorkoutAsTemplate: (
+    workoutId: string,
+    templateName?: string
+  ) => Promise<boolean>;
+
+  startWorkoutFromTemplate: (
+    templateId: string
+  ) => Promise<boolean>;
+
+  deleteWorkoutTemplate: (
+    templateId: string
+  ) => Promise<boolean>;
 
   clearActiveWorkout: () => void;
 };
 
 const WorkoutContext =
-  createContext<WorkoutContextType | undefined>(
-    undefined
-  );
+  createContext<
+    WorkoutContextType | undefined
+  >(undefined);
 
 function getLocalDateString() {
   const now = new Date();
 
-  const year = now.getFullYear();
+  const year =
+    now.getFullYear();
 
   const month = String(
     now.getMonth() + 1
@@ -113,38 +154,67 @@ function getLocalDateString() {
 export function WorkoutProvider({
   children,
 }: PropsWithChildren) {
-  const [activeWorkout, setActiveWorkout] =
-    useState<Workout | null>(null);
+  const [
+    activeWorkout,
+    setActiveWorkout,
+  ] = useState<Workout | null>(
+    null
+  );
 
   const [
     workoutHistory,
     setWorkoutHistory,
-  ] = useState<WorkoutHistoryItem[]>([]);
+  ] = useState<
+    WorkoutHistoryItem[]
+  >([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    workoutTemplates,
+    setWorkoutTemplates,
+  ] = useState<
+    WorkoutTemplate[]
+  >([]);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
   const [
     historyLoading,
     setHistoryLoading,
   ] = useState(true);
 
+  const [
+    templatesLoading,
+    setTemplatesLoading,
+  ] = useState(true);
+
   useEffect(() => {
     loadActiveWorkout();
     loadWorkoutHistory();
+    loadWorkoutTemplates();
   }, []);
 
   async function getCurrentUserId() {
     const {
-      data: { user },
+      data: { session },
       error,
-    } = await supabase.auth.getUser();
+    } =
+      await supabase.auth.getSession();
 
-    if (error || !user) {
+    if (error) {
+      console.error(
+        'Unable to load workout session:',
+        error
+      );
+
       return null;
     }
 
-    return user.id;
+    return (
+      session?.user?.id ?? null
+    );
   }
 
   async function startWorkout(
@@ -160,7 +230,10 @@ export function WorkoutProvider({
       return false;
     }
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error,
+    } = await supabase
       .from('workouts')
       .insert({
         user_id: userId,
@@ -190,7 +263,8 @@ export function WorkoutProvider({
         data.started_at,
       completedAt:
         data.completed_at,
-      notes: data.notes,
+      notes:
+        data.notes,
       exercises: [],
     });
 
@@ -208,17 +282,30 @@ export function WorkoutProvider({
     if (!userId) {
       setActiveWorkout(null);
       setLoading(false);
+
       return false;
     }
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error,
+    } = await supabase
       .from('workouts')
       .select('id')
-      .eq('user_id', userId)
-      .is('completed_at', null)
-      .order('started_at', {
-        ascending: false,
-      })
+      .eq(
+        'user_id',
+        userId
+      )
+      .is(
+        'completed_at',
+        null
+      )
+      .order(
+        'started_at',
+        {
+          ascending: false,
+        }
+      )
       .limit(1)
       .maybeSingle();
 
@@ -230,16 +317,20 @@ export function WorkoutProvider({
 
       setActiveWorkout(null);
       setLoading(false);
+
       return false;
     }
 
     if (!data) {
       setActiveWorkout(null);
       setLoading(false);
+
       return true;
     }
 
-    return await loadWorkout(data.id);
+    return await loadWorkout(
+      data.id
+    );
   }
 
   async function loadWorkout(
@@ -261,8 +352,14 @@ export function WorkoutProvider({
     } = await supabase
       .from('workouts')
       .select('*')
-      .eq('id', workoutId)
-      .eq('user_id', userId)
+      .eq(
+        'id',
+        workoutId
+      )
+      .eq(
+        'user_id',
+        userId
+      )
       .single();
 
     if (workoutError) {
@@ -279,12 +376,20 @@ export function WorkoutProvider({
       data: exerciseData,
       error: exerciseError,
     } = await supabase
-      .from('workout_exercises')
+      .from(
+        'workout_exercises'
+      )
       .select('*')
-      .eq('workout_id', workoutId)
-      .order('exercise_order', {
-        ascending: true,
-      });
+      .eq(
+        'workout_id',
+        workoutId
+      )
+      .order(
+        'exercise_order',
+        {
+          ascending: true,
+        }
+      );
 
     if (exerciseError) {
       console.error(
@@ -296,23 +401,31 @@ export function WorkoutProvider({
       return false;
     }
 
-    const exercises: WorkoutExercise[] = [];
+    const exercises:
+      WorkoutExercise[] = [];
 
-    for (const exercise of
-      exerciseData ?? []) {
+    for (
+      const exercise of
+        exerciseData ?? []
+    ) {
       const {
         data: setData,
         error: setError,
       } = await supabase
-        .from('workout_sets')
+        .from(
+          'workout_sets'
+        )
         .select('*')
         .eq(
           'workout_exercise_id',
           exercise.id
         )
-        .order('set_number', {
-          ascending: true,
-        });
+        .order(
+          'set_number',
+          {
+            ascending: true,
+          }
+        );
 
       if (setError) {
         console.error(
@@ -326,54 +439,52 @@ export function WorkoutProvider({
 
       exercises.push({
         id: exercise.id,
-
         exerciseName:
           exercise.exercise_name,
-
         exerciseOrder:
           exercise.exercise_order,
 
-        sets: (setData ?? []).map(
-          (set) => ({
-            id: set.id,
+        sets:
+          (setData ?? []).map(
+            (set) => ({
+              id: set.id,
 
-            setNumber:
-              set.set_number,
+              setNumber:
+                set.set_number,
 
-            weight:
-              set.weight === null
-                ? null
-                : Number(set.weight),
+              weight:
+                set.weight === null
+                  ? null
+                  : Number(
+                      set.weight
+                    ),
 
-            reps:
-              set.reps === null
-                ? null
-                : Number(set.reps),
+              reps:
+                set.reps === null
+                  ? null
+                  : Number(
+                      set.reps
+                    ),
 
-            completed:
-              set.completed,
-          })
-        ),
+              completed:
+                set.completed,
+            })
+          ),
       });
     }
 
     setActiveWorkout({
       id: workoutData.id,
-
-      name: workoutData.name,
-
+      name:
+        workoutData.name,
       workoutDate:
         workoutData.workout_date,
-
       startedAt:
         workoutData.started_at,
-
       completedAt:
         workoutData.completed_at,
-
       notes:
         workoutData.notes,
-
       exercises,
     });
 
@@ -383,14 +494,19 @@ export function WorkoutProvider({
   }
 
   async function loadWorkoutHistory(): Promise<boolean> {
-    setHistoryLoading(true);
+    setHistoryLoading(
+      true
+    );
 
     const userId =
       await getCurrentUserId();
 
     if (!userId) {
       setWorkoutHistory([]);
-      setHistoryLoading(false);
+      setHistoryLoading(
+        false
+      );
+
       return false;
     }
 
@@ -402,11 +518,21 @@ export function WorkoutProvider({
       .select(
         'id, name, workout_date, started_at, completed_at'
       )
-      .eq('user_id', userId)
-      .not('completed_at', 'is', null)
-      .order('completed_at', {
-        ascending: false,
-      });
+      .eq(
+        'user_id',
+        userId
+      )
+      .not(
+        'completed_at',
+        'is',
+        null
+      )
+      .order(
+        'completed_at',
+        {
+          ascending: false,
+        }
+      );
 
     if (workoutError) {
       console.error(
@@ -415,18 +541,28 @@ export function WorkoutProvider({
       );
 
       setWorkoutHistory([]);
-      setHistoryLoading(false);
+      setHistoryLoading(
+        false
+      );
+
       return false;
     }
 
-    const historyItems: WorkoutHistoryItem[] = [];
+    const historyItems:
+      WorkoutHistoryItem[] =
+      [];
 
-    for (const workout of workoutData ?? []) {
+    for (
+      const workout of
+        workoutData ?? []
+    ) {
       const {
         data: exerciseData,
         error: exerciseError,
       } = await supabase
-        .from('workout_exercises')
+        .from(
+          'workout_exercises'
+        )
         .select('id')
         .eq(
           'workout_id',
@@ -439,27 +575,42 @@ export function WorkoutProvider({
           exerciseError
         );
 
-        setHistoryLoading(false);
+        setHistoryLoading(
+          false
+        );
+
         return false;
       }
 
       const exerciseIds =
-        (exerciseData ?? []).map(
-          (exercise) => exercise.id
+        (
+          exerciseData ?? []
+        ).map(
+          (exercise) =>
+            exercise.id
         );
 
       let setCount = 0;
 
-      if (exerciseIds.length > 0) {
+      if (
+        exerciseIds.length >
+        0
+      ) {
         const {
           count,
           error: setError,
         } = await supabase
-          .from('workout_sets')
-          .select('id', {
-            count: 'exact',
-            head: true,
-          })
+          .from(
+            'workout_sets'
+          )
+          .select(
+            'id',
+            {
+              count:
+                'exact',
+              head: true,
+            }
+          )
           .in(
             'workout_exercise_id',
             exerciseIds
@@ -471,30 +622,29 @@ export function WorkoutProvider({
             setError
           );
 
-          setHistoryLoading(false);
+          setHistoryLoading(
+            false
+          );
+
           return false;
         }
 
-        setCount = count ?? 0;
+        setCount =
+          count ?? 0;
       }
 
       historyItems.push({
         id: workout.id,
-
-        name: workout.name,
-
+        name:
+          workout.name,
         workoutDate:
           workout.workout_date,
-
         startedAt:
           workout.started_at,
-
         completedAt:
           workout.completed_at,
-
         exerciseCount:
           exerciseIds.length,
-
         setCount,
       });
     }
@@ -503,7 +653,156 @@ export function WorkoutProvider({
       historyItems
     );
 
-    setHistoryLoading(false);
+    setHistoryLoading(
+      false
+    );
+
+    return true;
+  }
+
+  async function loadWorkoutTemplates(): Promise<boolean> {
+    setTemplatesLoading(
+      true
+    );
+
+    const userId =
+      await getCurrentUserId();
+
+    if (!userId) {
+      setWorkoutTemplates(
+        []
+      );
+
+      setTemplatesLoading(
+        false
+      );
+
+      return false;
+    }
+
+    const {
+      data: templateData,
+      error: templateError,
+    } = await supabase
+      .from(
+        'workout_templates'
+      )
+      .select(
+        'id, name, created_at, updated_at'
+      )
+      .eq(
+        'user_id',
+        userId
+      )
+      .order(
+        'created_at',
+        {
+          ascending: false,
+        }
+      );
+
+    if (templateError) {
+      console.error(
+        'Error loading workout templates:',
+        templateError
+      );
+
+      setWorkoutTemplates(
+        []
+      );
+
+      setTemplatesLoading(
+        false
+      );
+
+      return false;
+    }
+
+    const templates:
+      WorkoutTemplate[] = [];
+
+    for (
+      const template of
+        templateData ?? []
+    ) {
+      const {
+        data:
+          templateExerciseData,
+        error:
+          templateExerciseError,
+      } = await supabase
+        .from(
+          'workout_template_exercises'
+        )
+        .select('*')
+        .eq(
+          'template_id',
+          template.id
+        )
+        .order(
+          'exercise_order',
+          {
+            ascending: true,
+          }
+        );
+
+      if (
+        templateExerciseError
+      ) {
+        console.error(
+          'Error loading template exercises:',
+          templateExerciseError
+        );
+
+        setTemplatesLoading(
+          false
+        );
+
+        return false;
+      }
+
+      templates.push({
+        id:
+          template.id,
+
+        name:
+          template.name,
+
+        createdAt:
+          template.created_at,
+
+        updatedAt:
+          template.updated_at,
+
+        exercises:
+          (
+            templateExerciseData ??
+            []
+          ).map(
+            (exercise) => ({
+              id:
+                exercise.id,
+
+              exerciseName:
+                exercise.exercise_name,
+
+              exerciseOrder:
+                exercise.exercise_order,
+
+              setCount:
+                exercise.set_count,
+            })
+          ),
+      });
+    }
+
+    setWorkoutTemplates(
+      templates
+    );
+
+    setTemplatesLoading(
+      false
+    );
 
     return true;
   }
@@ -523,10 +822,16 @@ export function WorkoutProvider({
     }
 
     const exerciseOrder =
-      activeWorkout.exercises.length;
+      activeWorkout.exercises
+        .length;
 
-    const { data, error } = await supabase
-      .from('workout_exercises')
+    const {
+      data,
+      error,
+    } = await supabase
+      .from(
+        'workout_exercises'
+      )
       .insert({
         workout_id:
           activeWorkout.id,
@@ -549,7 +854,8 @@ export function WorkoutProvider({
       return false;
     }
 
-    const newExercise: WorkoutExercise = {
+    const newExercise:
+      WorkoutExercise = {
       id: data.id,
 
       exerciseName:
@@ -584,10 +890,17 @@ export function WorkoutProvider({
   async function deleteExercise(
     exerciseId: string
   ): Promise<boolean> {
-    const { error } = await supabase
-      .from('workout_exercises')
+    const {
+      error,
+    } = await supabase
+      .from(
+        'workout_exercises'
+      )
       .delete()
-      .eq('id', exerciseId);
+      .eq(
+        'id',
+        exerciseId
+      );
 
     if (error) {
       console.error(
@@ -640,7 +953,10 @@ export function WorkoutProvider({
 
     const highestSetNumber =
       exercise.sets.reduce(
-        (highest, set) =>
+        (
+          highest,
+          set
+        ) =>
           Math.max(
             highest,
             set.setNumber
@@ -651,8 +967,13 @@ export function WorkoutProvider({
     const setNumber =
       highestSetNumber + 1;
 
-    const { data, error } = await supabase
-      .from('workout_sets')
+    const {
+      data,
+      error,
+    } = await supabase
+      .from(
+        'workout_sets'
+      )
       .insert({
         workout_exercise_id:
           workoutExerciseId,
@@ -678,7 +999,8 @@ export function WorkoutProvider({
       return false;
     }
 
-    const newSet: WorkoutSet = {
+    const newSet:
+      WorkoutSet = {
       id: data.id,
 
       setNumber:
@@ -687,12 +1009,16 @@ export function WorkoutProvider({
       weight:
         data.weight === null
           ? null
-          : Number(data.weight),
+          : Number(
+              data.weight
+            ),
 
       reps:
         data.reps === null
           ? null
-          : Number(data.reps),
+          : Number(
+              data.reps
+            ),
 
       completed:
         data.completed,
@@ -735,14 +1061,21 @@ export function WorkoutProvider({
     reps: number | null,
     completed: boolean
   ): Promise<boolean> {
-    const { error } = await supabase
-      .from('workout_sets')
+    const {
+      error,
+    } = await supabase
+      .from(
+        'workout_sets'
+      )
       .update({
         weight,
         reps,
         completed,
       })
-      .eq('id', setId);
+      .eq(
+        'id',
+        setId
+      );
 
     if (error) {
       console.error(
@@ -770,7 +1103,8 @@ export function WorkoutProvider({
                 sets:
                   exercise.sets.map(
                     (set) =>
-                      set.id === setId
+                      set.id ===
+                      setId
                         ? {
                             ...set,
                             weight,
@@ -791,10 +1125,17 @@ export function WorkoutProvider({
   async function deleteSet(
     setId: string
   ): Promise<boolean> {
-    const { error } = await supabase
-      .from('workout_sets')
+    const {
+      error,
+    } = await supabase
+      .from(
+        'workout_sets'
+      )
       .delete()
-      .eq('id', setId);
+      .eq(
+        'id',
+        setId
+      );
 
     if (error) {
       console.error(
@@ -822,7 +1163,8 @@ export function WorkoutProvider({
                 sets:
                   exercise.sets.filter(
                     (set) =>
-                      set.id !== setId
+                      set.id !==
+                      setId
                   ),
               })
             ),
@@ -841,7 +1183,9 @@ export function WorkoutProvider({
     const completedAt =
       new Date().toISOString();
 
-    const { error } = await supabase
+    const {
+      error,
+    } = await supabase
       .from('workouts')
       .update({
         completed_at:
@@ -871,6 +1215,631 @@ export function WorkoutProvider({
     return true;
   }
 
+  async function discardActiveWorkout(): Promise<boolean> {
+    if (!activeWorkout) {
+      return false;
+    }
+
+    const userId =
+      await getCurrentUserId();
+
+    if (!userId) {
+      return false;
+    }
+
+    const workoutId =
+      activeWorkout.id;
+
+    const {
+      data: workoutData,
+      error: workoutError,
+    } = await supabase
+      .from('workouts')
+      .select('id, completed_at')
+      .eq(
+        'id',
+        workoutId
+      )
+      .eq(
+        'user_id',
+        userId
+      )
+      .maybeSingle();
+
+    if (workoutError) {
+      console.error(
+        'Error verifying workout before discard:',
+        workoutError
+      );
+
+      return false;
+    }
+
+    if (!workoutData) {
+      setActiveWorkout(null);
+
+      return true;
+    }
+
+    if (
+      workoutData.completed_at !==
+      null
+    ) {
+      console.error(
+        'Completed workouts cannot be discarded as active workouts.'
+      );
+
+      return false;
+    }
+
+    const {
+      data: exerciseData,
+      error: exerciseLoadError,
+    } = await supabase
+      .from(
+        'workout_exercises'
+      )
+      .select('id')
+      .eq(
+        'workout_id',
+        workoutId
+      );
+
+    if (exerciseLoadError) {
+      console.error(
+        'Error loading workout exercises for discard:',
+        exerciseLoadError
+      );
+
+      return false;
+    }
+
+    const exerciseIds =
+      (
+        exerciseData ?? []
+      ).map(
+        (exercise) =>
+          exercise.id
+      );
+
+    if (
+      exerciseIds.length > 0
+    ) {
+      const {
+        error: setDeleteError,
+      } = await supabase
+        .from(
+          'workout_sets'
+        )
+        .delete()
+        .in(
+          'workout_exercise_id',
+          exerciseIds
+        );
+
+      if (setDeleteError) {
+        console.error(
+          'Error deleting workout sets during discard:',
+          setDeleteError
+        );
+
+        return false;
+      }
+
+      const {
+        error:
+          exerciseDeleteError,
+      } = await supabase
+        .from(
+          'workout_exercises'
+        )
+        .delete()
+        .eq(
+          'workout_id',
+          workoutId
+        );
+
+      if (
+        exerciseDeleteError
+      ) {
+        console.error(
+          'Error deleting workout exercises during discard:',
+          exerciseDeleteError
+        );
+
+        return false;
+      }
+    }
+
+    const {
+      error: deleteError,
+    } = await supabase
+      .from('workouts')
+      .delete()
+      .eq(
+        'id',
+        workoutId
+      )
+      .eq(
+        'user_id',
+        userId
+      )
+      .is(
+        'completed_at',
+        null
+      );
+
+    if (deleteError) {
+      console.error(
+        'Error discarding active workout:',
+        deleteError
+      );
+
+      return false;
+    }
+
+    setActiveWorkout(null);
+
+    return true;
+  }
+
+  async function saveWorkoutAsTemplate(
+    workoutId: string,
+    templateName?: string
+  ): Promise<boolean> {
+    const userId =
+      await getCurrentUserId();
+
+    if (!userId) {
+      return false;
+    }
+
+    const {
+      data: workoutData,
+      error: workoutError,
+    } = await supabase
+      .from('workouts')
+      .select('id, name')
+      .eq(
+        'id',
+        workoutId
+      )
+      .eq(
+        'user_id',
+        userId
+      )
+      .single();
+
+    if (workoutError) {
+      console.error(
+        'Error loading workout for template:',
+        workoutError
+      );
+
+      return false;
+    }
+
+    const {
+      data: exerciseData,
+      error: exerciseError,
+    } = await supabase
+      .from(
+        'workout_exercises'
+      )
+      .select(
+        'id, exercise_name, exercise_order'
+      )
+      .eq(
+        'workout_id',
+        workoutId
+      )
+      .order(
+        'exercise_order',
+        {
+          ascending: true,
+        }
+      );
+
+    if (exerciseError) {
+      console.error(
+        'Error loading exercises for template:',
+        exerciseError
+      );
+
+      return false;
+    }
+
+    if (
+      !exerciseData ||
+      exerciseData.length === 0
+    ) {
+      console.error(
+        'Cannot save an empty workout as a template.'
+      );
+
+      return false;
+    }
+
+    const finalTemplateName =
+      templateName?.trim() ||
+      workoutData.name ||
+      'Workout Template';
+
+    const {
+      data: templateData,
+      error: templateError,
+    } = await supabase
+      .from(
+        'workout_templates'
+      )
+      .insert({
+        user_id:
+          userId,
+        name:
+          finalTemplateName,
+      })
+      .select()
+      .single();
+
+    if (templateError) {
+      console.error(
+        'Error creating workout template:',
+        templateError
+      );
+
+      return false;
+    }
+
+    for (
+      const exercise of
+        exerciseData
+    ) {
+      const {
+        count,
+        error: setCountError,
+      } = await supabase
+        .from(
+          'workout_sets'
+        )
+        .select(
+          'id',
+          {
+            count: 'exact',
+            head: true,
+          }
+        )
+        .eq(
+          'workout_exercise_id',
+          exercise.id
+        );
+
+      if (setCountError) {
+        console.error(
+          'Error counting template sets:',
+          setCountError
+        );
+
+        await supabase
+          .from(
+            'workout_templates'
+          )
+          .delete()
+          .eq(
+            'id',
+            templateData.id
+          );
+
+        return false;
+      }
+
+      const {
+        error:
+          templateExerciseError,
+      } = await supabase
+        .from(
+          'workout_template_exercises'
+        )
+        .insert({
+          template_id:
+            templateData.id,
+
+          exercise_name:
+            exercise.exercise_name,
+
+          exercise_order:
+            exercise.exercise_order,
+
+          set_count:
+            count ?? 0,
+        });
+
+      if (
+        templateExerciseError
+      ) {
+        console.error(
+          'Error creating template exercise:',
+          templateExerciseError
+        );
+
+        await supabase
+          .from(
+            'workout_templates'
+          )
+          .delete()
+          .eq(
+            'id',
+            templateData.id
+          );
+
+        return false;
+      }
+    }
+
+    await loadWorkoutTemplates();
+
+    return true;
+  }
+
+  async function startWorkoutFromTemplate(
+    templateId: string
+  ): Promise<boolean> {
+    if (activeWorkout) {
+      return false;
+    }
+
+    setLoading(true);
+
+    const userId =
+      await getCurrentUserId();
+
+    if (!userId) {
+      setLoading(false);
+      return false;
+    }
+
+    const {
+      data: templateData,
+      error: templateError,
+    } = await supabase
+      .from(
+        'workout_templates'
+      )
+      .select(
+        'id, name'
+      )
+      .eq(
+        'id',
+        templateId
+      )
+      .eq(
+        'user_id',
+        userId
+      )
+      .single();
+
+    if (templateError) {
+      console.error(
+        'Error loading workout template:',
+        templateError
+      );
+
+      setLoading(false);
+      return false;
+    }
+
+    const {
+      data: templateExercises,
+      error:
+        templateExercisesError,
+    } = await supabase
+      .from(
+        'workout_template_exercises'
+      )
+      .select('*')
+      .eq(
+        'template_id',
+        templateId
+      )
+      .order(
+        'exercise_order',
+        {
+          ascending: true,
+        }
+      );
+
+    if (
+      templateExercisesError
+    ) {
+      console.error(
+        'Error loading workout template exercises:',
+        templateExercisesError
+      );
+
+      setLoading(false);
+      return false;
+    }
+
+    const {
+      data: workoutData,
+      error: workoutError,
+    } = await supabase
+      .from('workouts')
+      .insert({
+        user_id:
+          userId,
+
+        name:
+          templateData.name,
+
+        workout_date:
+          getLocalDateString(),
+      })
+      .select()
+      .single();
+
+    if (workoutError) {
+      console.error(
+        'Error starting workout from template:',
+        workoutError
+      );
+
+      setLoading(false);
+      return false;
+    }
+
+    for (
+      const templateExercise of
+        templateExercises ?? []
+    ) {
+      const {
+        data: exerciseData,
+        error: exerciseError,
+      } = await supabase
+        .from(
+          'workout_exercises'
+        )
+        .insert({
+          workout_id:
+            workoutData.id,
+
+          exercise_name:
+            templateExercise.exercise_name,
+
+          exercise_order:
+            templateExercise.exercise_order,
+        })
+        .select()
+        .single();
+
+      if (exerciseError) {
+        console.error(
+          'Error creating exercise from template:',
+          exerciseError
+        );
+
+        await supabase
+          .from('workouts')
+          .delete()
+          .eq(
+            'id',
+            workoutData.id
+          );
+
+        setLoading(false);
+        return false;
+      }
+
+      const setCount =
+        Number(
+          templateExercise.set_count
+        ) || 0;
+
+      for (
+        let setNumber = 1;
+        setNumber <=
+        setCount;
+        setNumber += 1
+      ) {
+        const {
+          error: setError,
+        } = await supabase
+          .from(
+            'workout_sets'
+          )
+          .insert({
+            workout_exercise_id:
+              exerciseData.id,
+
+            set_number:
+              setNumber,
+
+            weight: null,
+
+            reps: null,
+
+            completed:
+              false,
+          });
+
+        if (setError) {
+          console.error(
+            'Error creating set from template:',
+            setError
+          );
+
+          await supabase
+            .from(
+              'workouts'
+            )
+            .delete()
+            .eq(
+              'id',
+              workoutData.id
+            );
+
+          setLoading(false);
+          return false;
+        }
+      }
+    }
+
+    const success =
+      await loadWorkout(
+        workoutData.id
+      );
+
+    setLoading(false);
+
+    return success;
+  }
+
+  async function deleteWorkoutTemplate(
+    templateId: string
+  ): Promise<boolean> {
+    const userId =
+      await getCurrentUserId();
+
+    if (!userId) {
+      return false;
+    }
+
+    const {
+      error,
+    } = await supabase
+      .from(
+        'workout_templates'
+      )
+      .delete()
+      .eq(
+        'id',
+        templateId
+      )
+      .eq(
+        'user_id',
+        userId
+      );
+
+    if (error) {
+      console.error(
+        'Error deleting workout template:',
+        error
+      );
+
+      return false;
+    }
+
+    setWorkoutTemplates(
+      (current) =>
+        current.filter(
+          (template) =>
+            template.id !==
+            templateId
+        )
+    );
+
+    return true;
+  }
+
   function clearActiveWorkout() {
     setActiveWorkout(null);
   }
@@ -880,18 +1849,32 @@ export function WorkoutProvider({
       value={{
         activeWorkout,
         workoutHistory,
+        workoutTemplates,
+
         loading,
         historyLoading,
+        templatesLoading,
+
         startWorkout,
         loadWorkout,
         loadActiveWorkout,
         loadWorkoutHistory,
+        loadWorkoutTemplates,
+
         addExercise,
         deleteExercise,
+
         addSet,
         updateSet,
         deleteSet,
+
         finishWorkout,
+        discardActiveWorkout,
+
+        saveWorkoutAsTemplate,
+        startWorkoutFromTemplate,
+        deleteWorkoutTemplate,
+
         clearActiveWorkout,
       }}
     >
@@ -902,7 +1885,9 @@ export function WorkoutProvider({
 
 export function useWorkout() {
   const context =
-    useContext(WorkoutContext);
+    useContext(
+      WorkoutContext
+    );
 
   if (!context) {
     throw new Error(
