@@ -1,9 +1,9 @@
 import {
-    createContext,
-    ReactNode,
-    useContext,
-    useEffect,
-    useState,
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
 } from 'react';
 
 import { supabase } from '../lib/supabase';
@@ -27,6 +27,7 @@ export type Recipe = {
   description: string;
   instructions: string;
   servings: number;
+  sourceCuratedRecipeId: string | null;
   createdAt: string;
   updatedAt: string;
   ingredients: RecipeIngredient[];
@@ -75,9 +76,10 @@ export type NewRecipe = {
   instructions: string;
   servings: number;
   ingredients: NewRecipeIngredient[];
+  sourceCuratedRecipeId?: string | null;
 };
 
-type NutritionTotals = {
+export type NutritionTotals = {
   calories: number;
   protein: number;
   carbs: number;
@@ -125,6 +127,10 @@ type RecipeContextType = {
     curatedRecipeId: string
   ) => Promise<string | null>;
 
+  isCuratedRecipeSaved: (
+    curatedRecipeId: string
+  ) => boolean;
+
   getRecipeById: (
     recipeId: string
   ) => Recipe | undefined;
@@ -164,55 +170,16 @@ function roundNutrition(
 
 async function getUserId() {
   const {
-    data: { session },
-    error,
+    data: {
+      session,
+    },
   } =
     await supabase.auth.getSession();
 
-  if (error) {
-    console.error(
-      'Unable to get current user:',
-      error
-    );
-
-    return null;
-  }
-
   return (
-    session?.user?.id ??
+    session?.user.id ??
     null
   );
-}
-
-function calculateIngredientTotals(
-  ingredient: CalculatableIngredient
-) {
-  const quantity =
-    Number(
-      ingredient.quantity
-    ) || 0;
-
-  return {
-    calories:
-      (Number(
-        ingredient.calories
-      ) || 0) * quantity,
-
-    protein:
-      (Number(
-        ingredient.protein
-      ) || 0) * quantity,
-
-    carbs:
-      (Number(
-        ingredient.carbs
-      ) || 0) * quantity,
-
-    fat:
-      (Number(
-        ingredient.fat
-      ) || 0) * quantity,
-  };
 }
 
 export function RecipeProvider({
@@ -223,7 +190,9 @@ export function RecipeProvider({
   const [
     recipes,
     setRecipes,
-  ] = useState<Recipe[]>([]);
+  ] = useState<Recipe[]>(
+    []
+  );
 
   const [
     curatedRecipes,
@@ -243,17 +212,16 @@ export function RecipeProvider({
   ] = useState(true);
 
   async function loadRecipesForUser() {
-    setLoading(true);
-
     const userId =
       await getUserId();
 
     if (!userId) {
       setRecipes([]);
       setLoading(false);
-
       return;
     }
+
+    setLoading(true);
 
     const {
       data: recipeRows,
@@ -261,7 +229,16 @@ export function RecipeProvider({
     } = await supabase
       .from('recipes')
       .select(
-        'id, name, description, instructions, servings, created_at, updated_at'
+        `
+        id,
+        name,
+        description,
+        instructions,
+        servings,
+        source_curated_recipe_id,
+        created_at,
+        updated_at
+        `
       )
       .eq(
         'user_id',
@@ -280,204 +257,189 @@ export function RecipeProvider({
         recipeError
       );
 
-      setRecipes([]);
       setLoading(false);
-
-      return;
-    }
-
-    if (
-      !recipeRows ||
-      recipeRows.length === 0
-    ) {
-      setRecipes([]);
-      setLoading(false);
-
       return;
     }
 
     const recipeIds =
-      recipeRows.map(
+      (recipeRows ?? []).map(
         (recipe) =>
-          String(recipe.id)
+          recipe.id
       );
 
-    const {
-      data: ingredientRows,
-      error: ingredientError,
-    } = await supabase
-      .from(
-        'recipe_ingredients'
-      )
-      .select(
-        'id, recipe_id, ingredient_name, calories, protein, carbs, fat, serving, quantity, ingredient_order'
-      )
-      .eq(
-        'user_id',
-        userId
-      )
-      .in(
-        'recipe_id',
-        recipeIds
-      )
-      .order(
-        'ingredient_order',
-        {
-          ascending: true,
-        }
-      );
+    let ingredientRows:
+      | any[]
+      | null = [];
 
-    if (ingredientError) {
-      console.error(
-        'Error loading recipe ingredients:',
-        ingredientError
-      );
-
-      setRecipes([]);
-      setLoading(false);
-
-      return;
-    }
-
-    const loadedRecipes:
-      Recipe[] =
-        recipeRows.map(
-          (recipeRow) => {
-            const recipeId =
-              String(
-                recipeRow.id
-              );
-
-            const ingredients:
-              RecipeIngredient[] =
-                (
-                  ingredientRows ??
-                  []
-                )
-                  .filter(
-                    (
-                      ingredient
-                    ) =>
-                      String(
-                        ingredient.recipe_id
-                      ) ===
-                      recipeId
-                  )
-                  .map(
-                    (
-                      ingredient
-                    ) => ({
-                      id: String(
-                        ingredient.id
-                      ),
-
-                      recipeId,
-
-                      ingredientName:
-                        String(
-                          ingredient.ingredient_name ??
-                            ''
-                        ).trim(),
-
-                      calories:
-                        Number(
-                          ingredient.calories
-                        ) || 0,
-
-                      protein:
-                        Number(
-                          ingredient.protein
-                        ) || 0,
-
-                      carbs:
-                        Number(
-                          ingredient.carbs
-                        ) || 0,
-
-                      fat:
-                        Number(
-                          ingredient.fat
-                        ) || 0,
-
-                      serving:
-                        String(
-                          ingredient.serving ??
-                            ''
-                        ).trim(),
-
-                      quantity:
-                        Number(
-                          ingredient.quantity
-                        ) || 1,
-
-                      ingredientOrder:
-                        Number(
-                          ingredient.ingredient_order
-                        ) || 0,
-                    })
-                  );
-
-            return {
-              id: recipeId,
-
-              name: String(
-                recipeRow.name ??
-                  ''
-              ).trim(),
-
-              description:
-                String(
-                  recipeRow.description ??
-                    ''
-                ).trim(),
-
-              instructions:
-                String(
-                  recipeRow.instructions ??
-                    ''
-                ).trim(),
-
-              servings:
-                Number(
-                  recipeRow.servings
-                ) || 1,
-
-              createdAt:
-                String(
-                  recipeRow.created_at ??
-                    ''
-                ),
-
-              updatedAt:
-                String(
-                  recipeRow.updated_at ??
-                    ''
-                ),
-
-              ingredients,
-            };
+    if (
+      recipeIds.length > 0
+    ) {
+      const {
+        data,
+        error,
+      } = await supabase
+        .from(
+          'recipe_ingredients'
+        )
+        .select(
+          `
+          id,
+          recipe_id,
+          ingredient_name,
+          calories,
+          protein,
+          carbs,
+          fat,
+          serving,
+          quantity,
+          ingredient_order
+          `
+        )
+        .eq(
+          'user_id',
+          userId
+        )
+        .in(
+          'recipe_id',
+          recipeIds
+        )
+        .order(
+          'ingredient_order',
+          {
+            ascending: true,
           }
         );
 
+      if (error) {
+        console.error(
+          'Error loading recipe ingredients:',
+          error
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      ingredientRows =
+        data ?? [];
+    }
+
+    const mappedRecipes: Recipe[] =
+      (recipeRows ?? []).map(
+        (recipeRow) => ({
+          id:
+            recipeRow.id,
+
+          name:
+            recipeRow.name,
+
+          description:
+            recipeRow.description ??
+            '',
+
+          instructions:
+            recipeRow.instructions ??
+            '',
+
+          servings:
+            Number(
+              recipeRow.servings ??
+                1
+            ),
+
+          sourceCuratedRecipeId:
+            recipeRow.source_curated_recipe_id
+              ? String(
+                  recipeRow.source_curated_recipe_id
+                )
+              : null,
+
+          createdAt:
+            recipeRow.created_at,
+
+          updatedAt:
+            recipeRow.updated_at,
+
+          ingredients:
+            (
+              ingredientRows ??
+              []
+            )
+              .filter(
+                (
+                  ingredientRow
+                ) =>
+                  ingredientRow.recipe_id ===
+                  recipeRow.id
+              )
+              .map(
+                (
+                  ingredientRow
+                ) => ({
+                  id:
+                    ingredientRow.id,
+
+                  recipeId:
+                    ingredientRow.recipe_id,
+
+                  ingredientName:
+                    ingredientRow.ingredient_name,
+
+                  calories:
+                    Number(
+                      ingredientRow.calories ??
+                        0
+                    ),
+
+                  protein:
+                    Number(
+                      ingredientRow.protein ??
+                        0
+                    ),
+
+                  carbs:
+                    Number(
+                      ingredientRow.carbs ??
+                        0
+                    ),
+
+                  fat:
+                    Number(
+                      ingredientRow.fat ??
+                        0
+                    ),
+
+                  serving:
+                    ingredientRow.serving ??
+                    '',
+
+                  quantity:
+                    Number(
+                      ingredientRow.quantity ??
+                        1
+                    ),
+
+                  ingredientOrder:
+                    Number(
+                      ingredientRow.ingredient_order ??
+                        0
+                    ),
+                })
+              ),
+        })
+      );
+
     setRecipes(
-      loadedRecipes
+      mappedRecipes
     );
 
     setLoading(false);
   }
 
   async function loadCuratedRecipes() {
-    setCuratedLoading(true);
-
-    const userId =
-      await getUserId();
-
-    if (!userId) {
-      setCuratedRecipes([]);
-      setCuratedLoading(false);
-
-      return;
-    }
+    setCuratedLoading(
+      true
+    );
 
     const {
       data: recipeRows,
@@ -487,7 +449,18 @@ export function RecipeProvider({
         'curated_recipes'
       )
       .select(
-        'id, name, description, instructions, servings, category, image_url, is_featured, created_at, updated_at'
+        `
+        id,
+        name,
+        description,
+        instructions,
+        servings,
+        category,
+        image_url,
+        is_featured,
+        created_at,
+        updated_at
+        `
       )
       .order(
         'is_featured',
@@ -508,203 +481,194 @@ export function RecipeProvider({
         recipeError
       );
 
-      setCuratedRecipes([]);
-      setCuratedLoading(false);
+      setCuratedLoading(
+        false
+      );
 
       return;
     }
+
+    const curatedIds =
+      (recipeRows ?? []).map(
+        (recipe) =>
+          recipe.id
+      );
+
+    let ingredientRows:
+      | any[]
+      | null = [];
 
     if (
-      !recipeRows ||
-      recipeRows.length === 0
+      curatedIds.length > 0
     ) {
-      setCuratedRecipes([]);
-      setCuratedLoading(false);
-
-      return;
-    }
-
-    const recipeIds =
-      recipeRows.map(
-        (recipe) =>
-          String(recipe.id)
-      );
-
-    const {
-      data: ingredientRows,
-      error: ingredientError,
-    } = await supabase
-      .from(
-        'curated_recipe_ingredients'
-      )
-      .select(
-        'id, recipe_id, ingredient_name, calories, protein, carbs, fat, serving, quantity, ingredient_order'
-      )
-      .in(
-        'recipe_id',
-        recipeIds
-      )
-      .order(
-        'ingredient_order',
-        {
-          ascending: true,
-        }
-      );
-
-    if (ingredientError) {
-      console.error(
-        'Error loading curated recipe ingredients:',
-        ingredientError
-      );
-
-      setCuratedRecipes([]);
-      setCuratedLoading(false);
-
-      return;
-    }
-
-    const loadedRecipes:
-      CuratedRecipe[] =
-        recipeRows.map(
-          (recipeRow) => {
-            const recipeId =
-              String(
-                recipeRow.id
-              );
-
-            const ingredients:
-              CuratedRecipeIngredient[] =
-                (
-                  ingredientRows ??
-                  []
-                )
-                  .filter(
-                    (
-                      ingredient
-                    ) =>
-                      String(
-                        ingredient.recipe_id
-                      ) ===
-                      recipeId
-                  )
-                  .map(
-                    (
-                      ingredient
-                    ) => ({
-                      id: String(
-                        ingredient.id
-                      ),
-
-                      recipeId,
-
-                      ingredientName:
-                        String(
-                          ingredient.ingredient_name ??
-                            ''
-                        ).trim(),
-
-                      calories:
-                        Number(
-                          ingredient.calories
-                        ) || 0,
-
-                      protein:
-                        Number(
-                          ingredient.protein
-                        ) || 0,
-
-                      carbs:
-                        Number(
-                          ingredient.carbs
-                        ) || 0,
-
-                      fat:
-                        Number(
-                          ingredient.fat
-                        ) || 0,
-
-                      serving:
-                        String(
-                          ingredient.serving ??
-                            ''
-                        ).trim(),
-
-                      quantity:
-                        Number(
-                          ingredient.quantity
-                        ) || 1,
-
-                      ingredientOrder:
-                        Number(
-                          ingredient.ingredient_order
-                        ) || 0,
-                    })
-                  );
-
-            return {
-              id: recipeId,
-
-              name: String(
-                recipeRow.name ??
-                  ''
-              ).trim(),
-
-              description:
-                String(
-                  recipeRow.description ??
-                    ''
-                ).trim(),
-
-              instructions:
-                String(
-                  recipeRow.instructions ??
-                    ''
-                ).trim(),
-
-              servings:
-                Number(
-                  recipeRow.servings
-                ) || 1,
-
-              category:
-                String(
-                  recipeRow.category ??
-                    ''
-                ).trim(),
-
-              imageUrl:
-                String(
-                  recipeRow.image_url ??
-                    ''
-                ).trim(),
-
-              isFeatured:
-                Boolean(
-                  recipeRow.is_featured
-                ),
-
-              createdAt:
-                String(
-                  recipeRow.created_at ??
-                    ''
-                ),
-
-              updatedAt:
-                String(
-                  recipeRow.updated_at ??
-                    ''
-                ),
-
-              ingredients,
-            };
+      const {
+        data,
+        error,
+      } = await supabase
+        .from(
+          'curated_recipe_ingredients'
+        )
+        .select(
+          `
+          id,
+          recipe_id,
+          ingredient_name,
+          calories,
+          protein,
+          carbs,
+          fat,
+          serving,
+          quantity,
+          ingredient_order
+          `
+        )
+        .in(
+          'recipe_id',
+          curatedIds
+        )
+        .order(
+          'ingredient_order',
+          {
+            ascending: true,
           }
         );
 
+      if (error) {
+        console.error(
+          'Error loading curated recipe ingredients:',
+          error
+        );
+
+        setCuratedLoading(
+          false
+        );
+
+        return;
+      }
+
+      ingredientRows =
+        data ?? [];
+    }
+
+    const mappedRecipes:
+      CuratedRecipe[] =
+      (recipeRows ?? []).map(
+        (recipeRow) => ({
+          id:
+            recipeRow.id,
+
+          name:
+            recipeRow.name,
+
+          description:
+            recipeRow.description ??
+            '',
+
+          instructions:
+            recipeRow.instructions ??
+            '',
+
+          servings:
+            Number(
+              recipeRow.servings ??
+                1
+            ),
+
+          category:
+            recipeRow.category ??
+            '',
+
+          imageUrl:
+            recipeRow.image_url ??
+            '',
+
+          isFeatured:
+            Boolean(
+              recipeRow.is_featured
+            ),
+
+          createdAt:
+            recipeRow.created_at,
+
+          updatedAt:
+            recipeRow.updated_at,
+
+          ingredients:
+            (
+              ingredientRows ??
+              []
+            )
+              .filter(
+                (
+                  ingredientRow
+                ) =>
+                  ingredientRow.recipe_id ===
+                  recipeRow.id
+              )
+              .map(
+                (
+                  ingredientRow
+                ) => ({
+                  id:
+                    ingredientRow.id,
+
+                  recipeId:
+                    ingredientRow.recipe_id,
+
+                  ingredientName:
+                    ingredientRow.ingredient_name,
+
+                  calories:
+                    Number(
+                      ingredientRow.calories ??
+                        0
+                    ),
+
+                  protein:
+                    Number(
+                      ingredientRow.protein ??
+                        0
+                    ),
+
+                  carbs:
+                    Number(
+                      ingredientRow.carbs ??
+                        0
+                    ),
+
+                  fat:
+                    Number(
+                      ingredientRow.fat ??
+                        0
+                    ),
+
+                  serving:
+                    ingredientRow.serving ??
+                    '',
+
+                  quantity:
+                    Number(
+                      ingredientRow.quantity ??
+                        1
+                    ),
+
+                  ingredientOrder:
+                    Number(
+                      ingredientRow.ingredient_order ??
+                        0
+                    ),
+                })
+              ),
+        })
+      );
+
     setCuratedRecipes(
-      loadedRecipes
+      mappedRecipes
     );
 
-    setCuratedLoading(false);
+    setCuratedLoading(
+      false
+    );
   }
 
   async function refreshRecipes() {
@@ -732,48 +696,45 @@ export function RecipeProvider({
       return null;
     }
 
-    const trimmedName =
-      recipe.name.trim();
-
-    if (!trimmedName) {
-      return null;
-    }
-
-    const servings =
-      Number(
-        recipe.servings
-      );
-
     if (
-      !Number.isFinite(
-        servings
-      ) ||
-      servings <= 0
+      !recipe.name.trim() ||
+      recipe.servings <= 0
     ) {
       return null;
     }
 
     const {
-      data: createdRecipe,
+      data: recipeRow,
       error: recipeError,
     } = await supabase
       .from('recipes')
       .insert({
-        user_id: userId,
-        name: trimmedName,
+        user_id:
+          userId,
+
+        name:
+          recipe.name.trim(),
+
         description:
           recipe.description.trim(),
+
         instructions:
           recipe.instructions.trim(),
-        servings,
+
+        servings:
+          recipe.servings,
+
+        source_curated_recipe_id:
+          recipe.sourceCuratedRecipeId ??
+          null,
+
+        updated_at:
+          new Date().toISOString(),
       })
       .select('id')
       .single();
 
-    if (
-      recipeError ||
-      !createdRecipe
-    ) {
+    if (recipeError) {
       console.error(
         'Error creating recipe:',
         recipeError
@@ -782,10 +743,9 @@ export function RecipeProvider({
       return null;
     }
 
-    const recipeId =
-      String(
-        createdRecipe.id
-      );
+    if (!recipeRow) {
+      return null;
+    }
 
     if (
       recipe.ingredients.length >
@@ -798,33 +758,32 @@ export function RecipeProvider({
             index
           ) => ({
             recipe_id:
-              recipeId,
+              recipeRow.id,
+
             user_id:
               userId,
+
             ingredient_name:
               ingredient.ingredientName.trim(),
+
             calories:
-              Number(
-                ingredient.calories
-              ) || 0,
+              ingredient.calories,
+
             protein:
-              Number(
-                ingredient.protein
-              ) || 0,
+              ingredient.protein,
+
             carbs:
-              Number(
-                ingredient.carbs
-              ) || 0,
+              ingredient.carbs,
+
             fat:
-              Number(
-                ingredient.fat
-              ) || 0,
+              ingredient.fat,
+
             serving:
               ingredient.serving.trim(),
+
             quantity:
-              Number(
-                ingredient.quantity
-              ) || 1,
+              ingredient.quantity,
+
             ingredient_order:
               index,
           })
@@ -852,7 +811,7 @@ export function RecipeProvider({
           .delete()
           .eq(
             'id',
-            recipeId
+            recipeRow.id
           )
           .eq(
             'user_id',
@@ -865,7 +824,7 @@ export function RecipeProvider({
 
     await loadRecipesForUser();
 
-    return recipeId;
+    return recipeRow.id;
   }
 
   async function updateRecipe(
@@ -879,38 +838,40 @@ export function RecipeProvider({
       return false;
     }
 
-    const trimmedName =
-      recipe.name.trim();
-
-    if (!trimmedName) {
-      return false;
-    }
-
-    const servings =
-      Number(
-        recipe.servings
-      );
-
     if (
-      !Number.isFinite(
-        servings
-      ) ||
-      servings <= 0
+      !recipe.name.trim() ||
+      recipe.servings <= 0
     ) {
       return false;
     }
+
+    /*
+      Do NOT update
+      source_curated_recipe_id here.
+
+      A saved Apollo recipe should
+      retain its origin even after
+      the user edits their personal
+      copy.
+    */
 
     const {
       error: recipeError,
     } = await supabase
       .from('recipes')
       .update({
-        name: trimmedName,
+        name:
+          recipe.name.trim(),
+
         description:
           recipe.description.trim(),
+
         instructions:
           recipe.instructions.trim(),
-        servings,
+
+        servings:
+          recipe.servings,
+
         updated_at:
           new Date().toISOString(),
       })
@@ -933,8 +894,7 @@ export function RecipeProvider({
     }
 
     const {
-      error:
-        deleteIngredientsError,
+      error: deleteError,
     } = await supabase
       .from(
         'recipe_ingredients'
@@ -949,12 +909,10 @@ export function RecipeProvider({
         userId
       );
 
-    if (
-      deleteIngredientsError
-    ) {
+    if (deleteError) {
       console.error(
         'Error replacing recipe ingredients:',
-        deleteIngredientsError
+        deleteError
       );
 
       return false;
@@ -972,32 +930,31 @@ export function RecipeProvider({
           ) => ({
             recipe_id:
               recipeId,
+
             user_id:
               userId,
+
             ingredient_name:
               ingredient.ingredientName.trim(),
+
             calories:
-              Number(
-                ingredient.calories
-              ) || 0,
+              ingredient.calories,
+
             protein:
-              Number(
-                ingredient.protein
-              ) || 0,
+              ingredient.protein,
+
             carbs:
-              Number(
-                ingredient.carbs
-              ) || 0,
+              ingredient.carbs,
+
             fat:
-              Number(
-                ingredient.fat
-              ) || 0,
+              ingredient.fat,
+
             serving:
               ingredient.serving.trim(),
+
             quantity:
-              Number(
-                ingredient.quantity
-              ) || 1,
+              ingredient.quantity,
+
             ingredient_order:
               index,
           })
@@ -1005,7 +962,7 @@ export function RecipeProvider({
 
       const {
         error:
-          ingredientInsertError,
+          ingredientError,
       } = await supabase
         .from(
           'recipe_ingredients'
@@ -1014,12 +971,10 @@ export function RecipeProvider({
           ingredientRows
         );
 
-      if (
-        ingredientInsertError
-      ) {
+      if (ingredientError) {
         console.error(
-          'Error saving updated recipe ingredients:',
-          ingredientInsertError
+          'Error adding updated recipe ingredients:',
+          ingredientError
         );
 
         return false;
@@ -1065,8 +1020,8 @@ export function RecipeProvider({
     }
 
     setRecipes(
-      (current) =>
-        current.filter(
+      (currentRecipes) =>
+        currentRecipes.filter(
           (recipe) =>
             recipe.id !==
             recipeId
@@ -1076,9 +1031,92 @@ export function RecipeProvider({
     return true;
   }
 
+  function isCuratedRecipeSaved(
+    curatedRecipeId: string
+  ) {
+    return recipes.some(
+      (recipe) =>
+        recipe.sourceCuratedRecipeId ===
+        curatedRecipeId
+    );
+  }
+
+  async function findSavedCuratedRecipe(
+    userId: string,
+    curatedRecipeId: string
+  ) {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from('recipes')
+      .select('id')
+      .eq(
+        'user_id',
+        userId
+      )
+      .eq(
+        'source_curated_recipe_id',
+        curatedRecipeId
+      )
+      .maybeSingle();
+
+    if (error) {
+      console.error(
+        'Error checking saved Apollo recipe:',
+        error
+      );
+
+      return null;
+    }
+
+    return data?.id ?? null;
+  }
+
   async function saveCuratedRecipeToMyRecipes(
     curatedRecipeId: string
   ) {
+    const userId =
+      await getUserId();
+
+    if (!userId) {
+      return null;
+    }
+
+    /*
+      Fast local check.
+    */
+
+    const localExisting =
+      recipes.find(
+        (recipe) =>
+          recipe.sourceCuratedRecipeId ===
+          curatedRecipeId
+      );
+
+    if (localExisting) {
+      return localExisting.id;
+    }
+
+    /*
+      Persistent database check.
+
+      This protects against stale
+      local state and app restarts.
+    */
+
+    const databaseExisting =
+      await findSavedCuratedRecipe(
+        userId,
+        curatedRecipeId
+      );
+
+    if (databaseExisting) {
+      await loadRecipesForUser();
+
+      return databaseExisting;
+    }
+
     const curatedRecipe =
       curatedRecipes.find(
         (recipe) =>
@@ -1095,50 +1133,153 @@ export function RecipeProvider({
       return null;
     }
 
-    const newRecipe:
-      NewRecipe = {
+    const {
+      data: recipeRow,
+      error: recipeError,
+    } = await supabase
+      .from('recipes')
+      .insert({
+        user_id:
+          userId,
+
         name:
-          curatedRecipe.name,
+          curatedRecipe.name.trim(),
 
         description:
-          curatedRecipe.description,
+          curatedRecipe.description.trim(),
 
         instructions:
-          curatedRecipe.instructions,
+          curatedRecipe.instructions.trim(),
 
         servings:
           curatedRecipe.servings,
 
-        ingredients:
-          curatedRecipe.ingredients.map(
-            (ingredient) => ({
-              ingredientName:
-                ingredient.ingredientName,
+        source_curated_recipe_id:
+          curatedRecipe.id,
 
-              calories:
-                ingredient.calories,
+        updated_at:
+          new Date().toISOString(),
+      })
+      .select('id')
+      .single();
 
-              protein:
-                ingredient.protein,
+    if (recipeError) {
+      /*
+        PostgreSQL 23505 =
+        unique violation.
 
-              carbs:
-                ingredient.carbs,
+        If two save attempts happen
+        at nearly the same time, the
+        unique database index blocks
+        the duplicate. We simply find
+        and return the existing copy.
+      */
 
-              fat:
-                ingredient.fat,
+      if (
+        recipeError.code ===
+        '23505'
+      ) {
+        const existingId =
+          await findSavedCuratedRecipe(
+            userId,
+            curatedRecipeId
+          );
 
-              serving:
-                ingredient.serving,
+        await loadRecipesForUser();
 
-              quantity:
-                ingredient.quantity,
-            })
-          ),
-      };
+        return existingId;
+      }
 
-    return await createRecipe(
-      newRecipe
-    );
+      console.error(
+        'Error saving Apollo recipe:',
+        recipeError
+      );
+
+      return null;
+    }
+
+    if (!recipeRow) {
+      return null;
+    }
+
+    if (
+      curatedRecipe.ingredients.length >
+      0
+    ) {
+      const ingredientRows =
+        curatedRecipe.ingredients.map(
+          (
+            ingredient,
+            index
+          ) => ({
+            recipe_id:
+              recipeRow.id,
+
+            user_id:
+              userId,
+
+            ingredient_name:
+              ingredient.ingredientName.trim(),
+
+            calories:
+              ingredient.calories,
+
+            protein:
+              ingredient.protein,
+
+            carbs:
+              ingredient.carbs,
+
+            fat:
+              ingredient.fat,
+
+            serving:
+              ingredient.serving.trim(),
+
+            quantity:
+              ingredient.quantity,
+
+            ingredient_order:
+              index,
+          })
+        );
+
+      const {
+        error:
+          ingredientError,
+      } = await supabase
+        .from(
+          'recipe_ingredients'
+        )
+        .insert(
+          ingredientRows
+        );
+
+      if (ingredientError) {
+        console.error(
+          'Error saving Apollo recipe ingredients:',
+          ingredientError
+        );
+
+        await supabase
+          .from('recipes')
+          .delete()
+          .eq(
+            'id',
+            recipeRow.id
+          )
+          .eq(
+            'user_id',
+            userId
+          );
+
+        return null;
+      }
+    }
+
+    await loadRecipesForUser();
+
+    return recipeRow.id;
   }
 
   function getRecipeById(
@@ -1162,43 +1303,34 @@ export function RecipeProvider({
   }
 
   function calculateRecipeTotals(
-    recipe:
-      | Recipe
-      | NewRecipe
-      | CuratedRecipe
-  ) {
-    const calculatableRecipe =
-      recipe as CalculatableRecipe;
-
+    recipe: CalculatableRecipe
+  ): NutritionTotals {
     const totals =
-      calculatableRecipe.ingredients.reduce(
+      recipe.ingredients.reduce(
         (
-          current,
+          currentTotals,
           ingredient
-        ) => {
-          const ingredientTotals =
-            calculateIngredientTotals(
-              ingredient
-            );
+        ) => ({
+          calories:
+            currentTotals.calories +
+            ingredient.calories *
+              ingredient.quantity,
 
-          return {
-            calories:
-              current.calories +
-              ingredientTotals.calories,
+          protein:
+            currentTotals.protein +
+            ingredient.protein *
+              ingredient.quantity,
 
-            protein:
-              current.protein +
-              ingredientTotals.protein,
+          carbs:
+            currentTotals.carbs +
+            ingredient.carbs *
+              ingredient.quantity,
 
-            carbs:
-              current.carbs +
-              ingredientTotals.carbs,
-
-            fat:
-              current.fat +
-              ingredientTotals.fat,
-          };
-        },
+          fat:
+            currentTotals.fat +
+            ingredient.fat *
+              ingredient.quantity,
+        }),
         {
           calories: 0,
           protein: 0,
@@ -1231,20 +1363,17 @@ export function RecipeProvider({
   }
 
   function calculatePerServing(
-    recipe:
-      | Recipe
-      | NewRecipe
-      | CuratedRecipe
-  ) {
+    recipe: CalculatableRecipe
+  ): NutritionTotals {
     const totals =
       calculateRecipeTotals(
         recipe
       );
 
     const servings =
-      Number(
-        recipe.servings
-      ) || 1;
+      recipe.servings > 0
+        ? recipe.servings
+        : 1;
 
     return {
       calories:
@@ -1282,7 +1411,21 @@ export function RecipeProvider({
       },
     } =
       supabase.auth.onAuthStateChange(
-        () => {
+        (_event, session) => {
+          if (
+            !session?.user
+          ) {
+            setRecipes([]);
+            setCuratedRecipes(
+              []
+            );
+            setLoading(false);
+            setCuratedLoading(
+              false
+            );
+            return;
+          }
+
           setTimeout(() => {
             refreshAllRecipes();
           }, 0);
@@ -1299,17 +1442,24 @@ export function RecipeProvider({
       value={{
         recipes,
         curatedRecipes,
+
         loading,
         curatedLoading,
+
         refreshRecipes,
         refreshCuratedRecipes,
         refreshAllRecipes,
+
         createRecipe,
         updateRecipe,
         deleteRecipe,
+
         saveCuratedRecipeToMyRecipes,
+        isCuratedRecipeSaved,
+
         getRecipeById,
         getCuratedRecipeById,
+
         calculateRecipeTotals,
         calculatePerServing,
       }}

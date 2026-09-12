@@ -1,40 +1,32 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Stack, useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
 
 import {
-    Stack,
-    useRouter,
-} from 'expo-router';
-
-import {
-    useMemo,
-    useState,
-} from 'react';
-
-import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 
 import { colors } from '../../constants/theme';
 
 import {
-    MealType,
-    useFood,
+  MealType,
+  useFood,
 } from '../../context/FoodContext';
 
 import {
-    CuratedRecipe,
-    Recipe,
-    useRecipes,
+  CuratedRecipe,
+  Recipe,
+  useRecipes,
 } from '../../context/RecipeContext';
 
 const meals: MealType[] = [
@@ -53,29 +45,39 @@ type SelectedRecipe = {
   source: 'personal' | 'curated';
 };
 
-function numberValue(
-  value: string
-) {
-  const parsed =
-    Number(value);
+type RecipeFilter =
+  | 'All'
+  | 'My Recipes'
+  | 'Apollo'
+  | 'Featured'
+  | 'Breakfast'
+  | 'Lunch'
+  | 'Dinner'
+  | 'Snack';
 
-  if (
-    !Number.isFinite(parsed)
-  ) {
+const recipeFilters: RecipeFilter[] = [
+  'All',
+  'My Recipes',
+  'Apollo',
+  'Featured',
+  'Breakfast',
+  'Lunch',
+  'Dinner',
+  'Snack',
+];
+
+function numberValue(value: string) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
     return 0;
   }
 
   return parsed;
 }
 
-function formatNutrition(
-  value: number
-) {
-  return (
-    Math.round(
-      value * 10
-    ) / 10
-  );
+function formatNutrition(value: number) {
+  return Math.round(value * 10) / 10;
 }
 
 function matchesSearch(
@@ -83,54 +85,83 @@ function matchesSearch(
   search: string
 ) {
   const normalizedSearch =
-    search
-      .trim()
-      .toLowerCase();
+    search.trim().toLowerCase();
 
   if (!normalizedSearch) {
     return true;
   }
 
   const name =
-    recipe.name
-      .toLowerCase();
+    recipe.name.toLowerCase();
 
   const description =
-    recipe.description
-      .toLowerCase();
+    recipe.description.toLowerCase();
 
   const ingredients =
     recipe.ingredients
-      .map(
-        (ingredient) =>
-          ingredient.ingredientName.toLowerCase()
+      .map((ingredient) =>
+        ingredient.ingredientName.toLowerCase()
       )
       .join(' ');
 
   const category =
     'category' in recipe
-      ? recipe.category.toLowerCase()
+      ? String(
+          recipe.category ?? ''
+        ).toLowerCase()
       : '';
 
   return (
-    name.includes(
-      normalizedSearch
-    ) ||
-    description.includes(
-      normalizedSearch
-    ) ||
-    ingredients.includes(
-      normalizedSearch
-    ) ||
-    category.includes(
-      normalizedSearch
-    )
+    name.includes(normalizedSearch) ||
+    description.includes(normalizedSearch) ||
+    ingredients.includes(normalizedSearch) ||
+    category.includes(normalizedSearch)
   );
 }
 
+function matchesPersonalFilter(
+  filter: RecipeFilter
+) {
+  return (
+    filter === 'All' ||
+    filter === 'My Recipes'
+  );
+}
+
+function matchesCuratedFilter(
+  recipe: CuratedRecipe,
+  filter: RecipeFilter
+) {
+  if (
+    filter === 'All' ||
+    filter === 'Apollo'
+  ) {
+    return true;
+  }
+
+  if (filter === 'Featured') {
+    return recipe.isFeatured;
+  }
+
+  if (
+    filter === 'Breakfast' ||
+    filter === 'Lunch' ||
+    filter === 'Dinner' ||
+    filter === 'Snack'
+  ) {
+    return (
+      recipe.category
+        .trim()
+        .toLowerCase() ===
+      filter.toLowerCase()
+    );
+  }
+
+  return false;
+}
+
 export default function RecipesScreen() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
   const {
     addFoodEntry,
@@ -143,6 +174,7 @@ export default function RecipesScreen() {
     curatedLoading,
     deleteRecipe,
     saveCuratedRecipeToMyRecipes,
+    isCuratedRecipeSaved,
     calculatePerServing,
   } = useRecipes();
 
@@ -152,11 +184,16 @@ export default function RecipesScreen() {
   ] = useState('');
 
   const [
+    activeFilter,
+    setActiveFilter,
+  ] = useState<RecipeFilter>('All');
+
+  const [
     selected,
     setSelected,
-  ] = useState<
-    SelectedRecipe | null
-  >(null);
+  ] = useState<SelectedRecipe | null>(
+    null
+  );
 
   const [
     showLogModal,
@@ -176,81 +213,98 @@ export default function RecipesScreen() {
   const [
     logError,
     setLogError,
-  ] = useState<
-    string | null
-  >(null);
+  ] = useState<string | null>(
+    null
+  );
 
   const [
     deletingRecipeId,
     setDeletingRecipeId,
-  ] = useState<
-    string | null
-  >(null);
+  ] = useState<string | null>(
+    null
+  );
 
   const [
     savingCuratedRecipeId,
     setSavingCuratedRecipeId,
-  ] = useState<
-    string | null
-  >(null);
-
-  const [
-    savedCuratedRecipeId,
-    setSavedCuratedRecipeId,
-  ] = useState<
-    string | null
-  >(null);
+  ] = useState<string | null>(
+    null
+  );
 
   const [
     saveError,
     setSaveError,
-  ] = useState<
-    string | null
-  >(null);
+  ] = useState<string | null>(
+    null
+  );
 
   const filteredRecipes =
-    useMemo(
-      () =>
-        recipes.filter(
-          (recipe) =>
-            matchesSearch(
-              recipe,
-              search
-            )
-        ),
-      [
-        recipes,
-        search,
-      ]
-    );
+    useMemo(() => {
+      if (
+        !matchesPersonalFilter(
+          activeFilter
+        )
+      ) {
+        return [];
+      }
+
+      return recipes.filter((recipe) =>
+        matchesSearch(
+          recipe,
+          search
+        )
+      );
+    }, [
+      recipes,
+      search,
+      activeFilter,
+    ]);
 
   const filteredCuratedRecipes =
-    useMemo(
-      () =>
-        curatedRecipes.filter(
-          (recipe) =>
-            matchesSearch(
-              recipe,
-              search
-            )
-        ),
-      [
-        curatedRecipes,
-        search,
-      ]
-    );
+    useMemo(() => {
+      return curatedRecipes.filter(
+        (recipe) =>
+          matchesSearch(
+            recipe,
+            search
+          ) &&
+          matchesCuratedFilter(
+            recipe,
+            activeFilter
+          )
+      );
+    }, [
+      curatedRecipes,
+      search,
+      activeFilter,
+    ]);
 
   const totalResults =
     filteredRecipes.length +
     filteredCuratedRecipes.length;
 
   const selectedRecipe =
-    selected?.recipe ??
-    null;
+    selected?.recipe ?? null;
 
   const selectedSource =
-    selected?.source ??
-    null;
+    selected?.source ?? null;
+
+  const selectedCuratedRecipe =
+    selectedSource === 'curated' &&
+    selectedRecipe
+      ? (selectedRecipe as CuratedRecipe)
+      : null;
+
+  const selectedCuratedIsSaved =
+    selectedCuratedRecipe
+      ? isCuratedRecipeSaved(
+          selectedCuratedRecipe.id
+        )
+      : false;
+
+  const isDefaultView =
+    activeFilter === 'All' &&
+    !search.trim();
 
   function openRecipe(
     recipe: LibraryRecipe,
@@ -260,10 +314,6 @@ export default function RecipesScreen() {
   ) {
     setSaveError(null);
 
-    setSavedCuratedRecipeId(
-      null
-    );
-
     setSelected({
       recipe,
       source,
@@ -272,26 +322,10 @@ export default function RecipesScreen() {
 
   function closeRecipe() {
     setSelected(null);
-
-    setShowLogModal(
-      false
-    );
-
-    setLogServings(
-      '1'
-    );
-
-    setLogError(
-      null
-    );
-
-    setSaveError(
-      null
-    );
-
-    setSavedCuratedRecipeId(
-      null
-    );
+    setShowLogModal(false);
+    setLogServings('1');
+    setLogError(null);
+    setSaveError(null);
   }
 
   function handleEditRecipe(
@@ -300,12 +334,9 @@ export default function RecipesScreen() {
     setSelected(null);
 
     router.push({
-      pathname:
-        '/food/recipe',
-
+      pathname: '/food/recipe',
       params: {
-        recipeId:
-          recipe.id,
+        recipeId: recipe.id,
       },
     });
   }
@@ -321,50 +352,28 @@ export default function RecipesScreen() {
       source,
     });
 
-    setLogServings(
-      '1'
-    );
-
-    setLogError(
-      null
-    );
-
-    setShowLogModal(
-      true
-    );
+    setLogServings('1');
+    setLogError(null);
+    setShowLogModal(true);
   }
 
   function closeLogModal() {
-    setShowLogModal(
-      false
-    );
-
-    setLogServings(
-      '1'
-    );
-
-    setLogError(
-      null
-    );
+    setShowLogModal(false);
+    setLogServings('1');
+    setLogError(null);
   }
 
   async function handleLogRecipe(
     meal: MealType
   ) {
-    if (
-      !selectedRecipe
-    ) {
+    if (!selectedRecipe) {
       return;
     }
 
     const servingCount =
-      numberValue(
-        logServings
-      );
+      numberValue(logServings);
 
-    if (
-      servingCount <= 0
-    ) {
+    if (servingCount <= 0) {
       setLogError(
         'Servings must be greater than 0.'
       );
@@ -439,16 +448,15 @@ export default function RecipesScreen() {
     recipe: CuratedRecipe
   ) {
     if (
-      savingCuratedRecipeId
+      savingCuratedRecipeId ||
+      isCuratedRecipeSaved(
+        recipe.id
+      )
     ) {
       return;
     }
 
     setSaveError(null);
-
-    setSavedCuratedRecipeId(
-      null
-    );
 
     setSavingCuratedRecipeId(
       recipe.id
@@ -467,13 +475,7 @@ export default function RecipesScreen() {
       setSaveError(
         'Apollo could not save this recipe. Please try again.'
       );
-
-      return;
     }
-
-    setSavedCuratedRecipeId(
-      recipe.id
-    );
   }
 
   async function performDelete(
@@ -488,14 +490,11 @@ export default function RecipesScreen() {
         recipe.id
       );
 
-    setDeletingRecipeId(
-      null
-    );
+    setDeletingRecipeId(null);
 
     if (!success) {
       if (
-        Platform.OS ===
-        'web'
+        Platform.OS === 'web'
       ) {
         window.alert(
           'Apollo could not delete this recipe.'
@@ -513,8 +512,7 @@ export default function RecipesScreen() {
     if (
       selectedRecipe?.id ===
         recipe.id &&
-      selectedSource ===
-        'personal'
+      selectedSource === 'personal'
     ) {
       closeRecipe();
     }
@@ -523,15 +521,12 @@ export default function RecipesScreen() {
   function handleDeleteRecipe(
     recipe: Recipe
   ) {
-    if (
-      deletingRecipeId
-    ) {
+    if (deletingRecipeId) {
       return;
     }
 
     if (
-      Platform.OS ===
-      'web'
+      Platform.OS === 'web'
     ) {
       const confirmed =
         window.confirm(
@@ -539,9 +534,7 @@ export default function RecipesScreen() {
         );
 
       if (confirmed) {
-        performDelete(
-          recipe
-        );
+        performDelete(recipe);
       }
 
       return;
@@ -557,8 +550,7 @@ export default function RecipesScreen() {
         },
         {
           text: 'Delete',
-          style:
-            'destructive',
+          style: 'destructive',
           onPress: () =>
             performDelete(
               recipe
@@ -584,12 +576,17 @@ export default function RecipesScreen() {
         ? (recipe as CuratedRecipe)
         : null;
 
+    const curatedSaved =
+      curated
+        ? isCuratedRecipeSaved(
+            curated.id
+          )
+        : false;
+
     return (
       <Pressable
         key={`${source}-${recipe.id}`}
-        style={({
-          pressed,
-        }) => [
+        style={({ pressed }) => [
           styles.recipeCard,
           pressed &&
             styles.pressed,
@@ -672,6 +669,30 @@ export default function RecipesScreen() {
                     </Text>
                   </View>
                 ) : null}
+
+                {curatedSaved ? (
+                  <View
+                    style={
+                      styles.savedBadge
+                    }
+                  >
+                    <Ionicons
+                      name="checkmark"
+                      size={11}
+                      color={
+                        colors.primary
+                      }
+                    />
+
+                    <Text
+                      style={
+                        styles.savedBadgeText
+                      }
+                    >
+                      SAVED
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             ) : null}
 
@@ -679,9 +700,7 @@ export default function RecipesScreen() {
               style={
                 styles.recipeName
               }
-              numberOfLines={
-                1
-              }
+              numberOfLines={1}
             >
               {recipe.name}
             </Text>
@@ -691,9 +710,7 @@ export default function RecipesScreen() {
                 style={
                   styles.recipeDescription
                 }
-                numberOfLines={
-                  2
-                }
+                numberOfLines={2}
               >
                 {
                   recipe.description
@@ -708,20 +725,17 @@ export default function RecipesScreen() {
             >
               {recipe.servings}{' '}
               serving
-              {recipe.servings ===
-              1
+              {recipe.servings === 1
                 ? ''
                 : 's'}{' '}
               ·{' '}
               {
-                recipe
-                  .ingredients
+                recipe.ingredients
                   .length
               }{' '}
               ingredient
               {recipe.ingredients
-                .length ===
-              1
+                .length === 1
                 ? ''
                 : 's'}
             </Text>
@@ -1025,94 +1039,82 @@ export default function RecipesScreen() {
             ) : null}
           </View>
 
-          {search.trim() ? (
-            <>
-              <View
-                style={
-                  styles.libraryHeader
-                }
-              >
-                <Text
-                  style={
-                    styles.libraryLabel
-                  }
-                >
-                  SEARCH RESULTS
-                </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={
+              false
+            }
+            contentContainerStyle={
+              styles.filterRow
+            }
+            style={
+              styles.filterScroll
+            }
+          >
+            {recipeFilters.map(
+              (filter) => {
+                const selectedFilter =
+                  filter ===
+                  activeFilter;
 
-                <Text
-                  style={
-                    styles.recipeCount
-                  }
-                >
-                  {totalResults}{' '}
-                  recipe
-                  {totalResults ===
-                  1
-                    ? ''
-                    : 's'}
-                </Text>
-              </View>
+                return (
+                  <Pressable
+                    key={filter}
+                    style={[
+                      styles.filterChip,
 
-              {totalResults ===
-              0 ? (
-                <View
-                  style={
-                    styles.emptyState
-                  }
-                >
-                  <Ionicons
-                    name="search-outline"
-                    size={42}
-                    color={
-                      colors.textSecondary
-                    }
-                  />
-
-                  <Text
-                    style={
-                      styles.emptyTitle
+                      selectedFilter &&
+                        styles.filterChipActive,
+                    ]}
+                    onPress={() =>
+                      setActiveFilter(
+                        filter
+                      )
                     }
                   >
-                    No recipes found
-                  </Text>
+                    {filter ===
+                    'Featured' ? (
+                      <Ionicons
+                        name="star"
+                        size={13}
+                        color={
+                          selectedFilter
+                            ? '#08110B'
+                            : colors.textSecondary
+                        }
+                      />
+                    ) : null}
 
-                  <Text
-                    style={
-                      styles.emptyText
-                    }
-                  >
-                    Try a different
-                    recipe name,
-                    ingredient, or
-                    category.
-                  </Text>
-                </View>
-              ) : (
-                <View
-                  style={
-                    styles.recipeList
-                  }
-                >
-                  {filteredRecipes.map(
-                    (recipe) =>
-                      renderRecipeCard(
-                        recipe,
-                        'personal'
-                      )
-                  )}
+                    {filter ===
+                    'Apollo' ? (
+                      <Ionicons
+                        name="sparkles"
+                        size={13}
+                        color={
+                          selectedFilter
+                            ? '#08110B'
+                            : colors.textSecondary
+                        }
+                      />
+                    ) : null}
 
-                  {filteredCuratedRecipes.map(
-                    (recipe) =>
-                      renderRecipeCard(
-                        recipe,
-                        'curated'
-                      )
-                  )}
-                </View>
-              )}
-            </>
-          ) : (
+                    <Text
+                      style={[
+                        styles.filterChipText,
+
+                        selectedFilter &&
+                          styles.filterChipTextActive,
+                      ]}
+                    >
+                      {filter}
+                    </Text>
+                  </Pressable>
+                );
+              }
+            )}
+          </ScrollView>
+
+          {isDefaultView ? (
             <>
               <View
                 style={
@@ -1313,6 +1315,135 @@ export default function RecipesScreen() {
                 )}
               </View>
             </>
+          ) : (
+            <>
+              <View
+                style={
+                  styles.libraryHeader
+                }
+              >
+                <View>
+                  <Text
+                    style={
+                      styles.libraryLabel
+                    }
+                  >
+                    {search.trim()
+                      ? 'SEARCH RESULTS'
+                      : activeFilter.toUpperCase()}
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.sectionSubtitle
+                    }
+                  >
+                    {activeFilter ===
+                    'All'
+                      ? 'All matching recipes'
+                      : activeFilter ===
+                          'My Recipes'
+                        ? 'Your personal recipes'
+                        : activeFilter ===
+                            'Apollo'
+                          ? 'Built-in Apollo recipes'
+                          : activeFilter ===
+                              'Featured'
+                            ? 'Featured Apollo recipes'
+                            : `${activeFilter} recipes`}
+                  </Text>
+                </View>
+
+                <Text
+                  style={
+                    styles.recipeCount
+                  }
+                >
+                  {totalResults}{' '}
+                  recipe
+                  {totalResults === 1
+                    ? ''
+                    : 's'}
+                </Text>
+              </View>
+
+              {totalResults === 0 ? (
+                <View
+                  style={
+                    styles.emptyState
+                  }
+                >
+                  <Ionicons
+                    name="search-outline"
+                    size={42}
+                    color={
+                      colors.textSecondary
+                    }
+                  />
+
+                  <Text
+                    style={
+                      styles.emptyTitle
+                    }
+                  >
+                    No recipes found
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.emptyText
+                    }
+                  >
+                    Try another filter
+                    or search term.
+                  </Text>
+
+                  {activeFilter !==
+                  'All' ? (
+                    <Pressable
+                      style={
+                        styles.clearFilterButton
+                      }
+                      onPress={() =>
+                        setActiveFilter(
+                          'All'
+                        )
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.clearFilterButtonText
+                        }
+                      >
+                        SHOW ALL RECIPES
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : (
+                <View
+                  style={
+                    styles.recipeList
+                  }
+                >
+                  {filteredRecipes.map(
+                    (recipe) =>
+                      renderRecipeCard(
+                        recipe,
+                        'personal'
+                      )
+                  )}
+
+                  {filteredCuratedRecipes.map(
+                    (recipe) =>
+                      renderRecipeCard(
+                        recipe,
+                        'curated'
+                      )
+                  )}
+                </View>
+              )}
+            </>
           )}
         </ScrollView>
       </View>
@@ -1379,7 +1510,9 @@ export default function RecipesScreen() {
 
                         {'category' in
                           selectedRecipe &&
-                        selectedRecipe.category ? (
+                        (
+                          selectedRecipe as CuratedRecipe
+                        ).category ? (
                           <View
                             style={
                               styles.categoryBadge
@@ -1391,8 +1524,34 @@ export default function RecipesScreen() {
                               }
                             >
                               {
-                                selectedRecipe.category
+                                (
+                                  selectedRecipe as CuratedRecipe
+                                ).category
                               }
+                            </Text>
+                          </View>
+                        ) : null}
+
+                        {selectedCuratedIsSaved ? (
+                          <View
+                            style={
+                              styles.savedBadge
+                            }
+                          >
+                            <Ionicons
+                              name="checkmark"
+                              size={11}
+                              color={
+                                colors.primary
+                              }
+                            />
+
+                            <Text
+                              style={
+                                styles.savedBadgeText
+                              }
+                            >
+                              SAVED
                             </Text>
                           </View>
                         ) : null}
@@ -1613,8 +1772,7 @@ export default function RecipesScreen() {
                               styles.ingredientNumberText
                             }
                           >
-                            {index +
-                              1}
+                            {index + 1}
                           </Text>
                         </View>
 
@@ -1819,8 +1977,7 @@ export default function RecipesScreen() {
                           selectedRecipe.id &&
                           styles.disabledButton,
 
-                        savedCuratedRecipeId ===
-                          selectedRecipe.id &&
+                        selectedCuratedIsSaved &&
                           styles.savedRecipeButton,
                       ]}
                       onPress={() =>
@@ -1832,8 +1989,7 @@ export default function RecipesScreen() {
                         Boolean(
                           savingCuratedRecipeId
                         ) ||
-                        savedCuratedRecipeId ===
-                          selectedRecipe.id
+                        selectedCuratedIsSaved
                       }
                     >
                       {savingCuratedRecipeId ===
@@ -1847,8 +2003,7 @@ export default function RecipesScreen() {
                       ) : (
                         <Ionicons
                           name={
-                            savedCuratedRecipeId ===
-                            selectedRecipe.id
+                            selectedCuratedIsSaved
                               ? 'checkmark-circle'
                               : 'bookmark-outline'
                           }
@@ -1867,8 +2022,7 @@ export default function RecipesScreen() {
                         {savingCuratedRecipeId ===
                         selectedRecipe.id
                           ? 'SAVING...'
-                          : savedCuratedRecipeId ===
-                              selectedRecipe.id
+                          : selectedCuratedIsSaved
                             ? 'SAVED TO MY RECIPES'
                             : 'SAVE TO MY RECIPES'}
                       </Text>
@@ -1925,8 +2079,7 @@ export default function RecipesScreen() {
             styles.modalBackdrop
           }
           behavior={
-            Platform.OS ===
-            'ios'
+            Platform.OS === 'ios'
               ? 'padding'
               : undefined
           }
@@ -1998,9 +2151,7 @@ export default function RecipesScreen() {
                         styles.errorText
                       }
                     >
-                      {
-                        logError
-                      }
+                      {logError}
                     </Text>
                   </View>
                 ) : null}
@@ -2275,7 +2426,7 @@ const styles =
         colors.border,
       borderRadius: 12,
       paddingHorizontal: 13,
-      marginBottom: 22,
+      marginBottom: 14,
     },
 
     searchInput: {
@@ -2283,6 +2434,50 @@ const styles =
       color: colors.text,
       fontSize: 15,
       paddingVertical: 10,
+    },
+
+    filterScroll: {
+      marginBottom: 22,
+    },
+
+    filterRow: {
+      gap: 8,
+      paddingRight: 10,
+    },
+
+    filterChip: {
+      minHeight: 38,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      gap: 5,
+      paddingHorizontal: 14,
+      borderRadius: 19,
+      backgroundColor:
+        colors.surface,
+      borderWidth: 1,
+      borderColor:
+        colors.border,
+    },
+
+    filterChipActive: {
+      backgroundColor:
+        colors.primary,
+      borderColor:
+        colors.primary,
+    },
+
+    filterChipText: {
+      color:
+        colors.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+
+    filterChipTextActive: {
+      color: '#08110B',
+      fontWeight: '900',
     },
 
     section: {
@@ -2411,6 +2606,27 @@ const styles =
     },
 
     featuredBadgeText: {
+      color:
+        colors.primary,
+      fontSize: 9,
+      fontWeight: '900',
+    },
+
+    savedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      backgroundColor:
+        'rgba(74, 222, 128, 0.08)',
+      borderWidth: 1,
+      borderColor:
+        colors.primary,
+      borderRadius: 6,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+    },
+
+    savedBadgeText: {
       color:
         colors.primary,
       fontSize: 9,
@@ -2547,6 +2763,23 @@ const styles =
     emptyButtonText: {
       color: '#08110B',
       fontSize: 13,
+      fontWeight: '900',
+    },
+
+    clearFilterButton: {
+      borderWidth: 1,
+      borderColor:
+        colors.primary,
+      paddingHorizontal: 18,
+      paddingVertical: 11,
+      borderRadius: 10,
+      marginTop: 18,
+    },
+
+    clearFilterButtonText: {
+      color:
+        colors.primary,
+      fontSize: 12,
       fontWeight: '900',
     },
 

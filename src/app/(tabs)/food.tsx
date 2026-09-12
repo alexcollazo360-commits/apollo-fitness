@@ -33,6 +33,7 @@ import {
 import { useProfile } from '../../context/ProfileContext';
 
 import {
+  CuratedRecipe,
   Recipe,
   useRecipes,
 } from '../../context/RecipeContext';
@@ -43,6 +44,10 @@ const mealSections: MealType[] = [
   'Dinner',
   'Snacks',
 ];
+
+type LoggableRecipe =
+  | Recipe
+  | CuratedRecipe;
 
 function roundNutrition(
   value: number
@@ -73,7 +78,9 @@ export default function FoodScreen() {
 
   const {
     recipes,
+    curatedRecipes,
     loading: recipesLoading,
+    curatedLoading,
     deleteRecipe,
     calculatePerServing,
   } = useRecipes();
@@ -154,7 +161,7 @@ export default function FoodScreen() {
     selectedRecipe,
     setSelectedRecipe,
   ] = useState<
-    Recipe | null
+    LoggableRecipe | null
   >(null);
 
   const [
@@ -230,6 +237,14 @@ export default function FoodScreen() {
 
   const previewRecipes =
     recipes.slice(0, 3);
+
+  const featuredApolloRecipes =
+    curatedRecipes
+      .filter(
+        (recipe) =>
+          recipe.isFeatured
+      )
+      .slice(0, 3);
 
   const selectedRecipePerServing =
     selectedRecipe
@@ -317,14 +332,17 @@ export default function FoodScreen() {
   }
 
   function openLogRecipe(
-    recipe: Recipe
+    recipe: LoggableRecipe
   ) {
     setSelectedRecipe(
       recipe
     );
 
     setRecipeServings('1');
-    setRecipeLogError(null);
+
+    setRecipeLogError(
+      null
+    );
   }
 
   function closeLogRecipe() {
@@ -333,7 +351,9 @@ export default function FoodScreen() {
     }
 
     setSelectedRecipe(null);
+
     setRecipeServings('1');
+
     setRecipeLogError(null);
   }
 
@@ -358,6 +378,7 @@ export default function FoodScreen() {
     }
 
     setRecipeLogError(null);
+
     setLoggingRecipe(true);
 
     const success =
@@ -399,7 +420,9 @@ export default function FoodScreen() {
     }
 
     setSelectedRecipe(null);
+
     setRecipeServings('1');
+
     setRecipeLogError(null);
   }
 
@@ -445,8 +468,11 @@ export default function FoodScreen() {
     meal: MealType
   ) {
     setCopyMeal(meal);
+
     setMealHistory([]);
+
     setCopyMessage(null);
+
     setHistoryLoading(true);
 
     const history =
@@ -469,7 +495,9 @@ export default function FoodScreen() {
     }
 
     setCopyMeal(null);
+
     setMealHistory([]);
+
     setCopyMessage(null);
   }
 
@@ -518,14 +546,19 @@ export default function FoodScreen() {
     }
 
     setCopyMeal(null);
+
     setMealHistory([]);
+
     setCopyMessage(null);
   }
 
   async function openCopyDay() {
     setShowCopyDay(true);
+
     setDayHistory([]);
+
     setDayCopyMessage(null);
+
     setDayHistoryLoading(
       true
     );
@@ -548,7 +581,9 @@ export default function FoodScreen() {
     }
 
     setShowCopyDay(false);
+
     setDayHistory([]);
+
     setDayCopyMessage(null);
   }
 
@@ -593,7 +628,9 @@ export default function FoodScreen() {
     }
 
     setShowCopyDay(false);
+
     setDayHistory([]);
+
     setDayCopyMessage(null);
   }
 
@@ -689,6 +726,7 @@ export default function FoodScreen() {
               pressed,
             }) => [
               styles.addFoodButton,
+
               pressed &&
                 styles.pressed,
             ]}
@@ -711,6 +749,7 @@ export default function FoodScreen() {
             pressed,
           }) => [
             styles.copyDayButton,
+
             pressed &&
               styles.pressed,
           ]}
@@ -785,6 +824,7 @@ export default function FoodScreen() {
               <View
                 style={[
                   styles.progressFill,
+
                   {
                     width: `${calorieProgress}%`,
                   },
@@ -940,6 +980,7 @@ export default function FoodScreen() {
                   pressed,
                 }) => [
                   styles.viewRecipesButton,
+
                   pressed &&
                     styles.pressed,
                 ]}
@@ -961,6 +1002,7 @@ export default function FoodScreen() {
                   pressed,
                 }) => [
                   styles.createRecipeButton,
+
                   pressed &&
                     styles.pressed,
                 ]}
@@ -1020,10 +1062,9 @@ export default function FoodScreen() {
                   styles.secondaryText
                 }
               >
-                Create a recipe and
-                Apollo will calculate
-                its nutrition per
-                serving.
+                Create a recipe or
+                save one from Apollo&apos;s
+                recipe library.
               </Text>
             </View>
           ) : (
@@ -1271,6 +1312,7 @@ export default function FoodScreen() {
                     pressed,
                   }) => [
                     styles.moreRecipesButton,
+
                     pressed &&
                       styles.pressed,
                   ]}
@@ -1295,6 +1337,374 @@ export default function FoodScreen() {
                   </Text>
                 </Pressable>
               ) : null}
+            </>
+          )}
+        </AppCard>
+
+        <AppCard>
+          <View
+            style={
+              styles.apolloHeader
+            }
+          >
+            <View
+              style={
+                styles.apolloHeaderText
+              }
+            >
+              <View
+                style={
+                  styles.apolloTitleRow
+                }
+              >
+                <View
+                  style={
+                    styles.apolloIcon
+                  }
+                >
+                  <Text
+                    style={
+                      styles.apolloIconText
+                    }
+                  >
+                    ✦
+                  </Text>
+                </View>
+
+                <Text
+                  style={
+                    styles.cardTitle
+                  }
+                >
+                  Featured Apollo
+                </Text>
+              </View>
+
+              <Text
+                style={
+                  styles.secondaryText
+                }
+              >
+                High-protein recipes
+                ready to log.
+              </Text>
+            </View>
+
+            <Pressable
+              style={({
+                pressed,
+              }) => [
+                styles.viewApolloButton,
+
+                pressed &&
+                  styles.pressed,
+              ]}
+              onPress={
+                handleViewRecipes
+              }
+            >
+              <Text
+                style={
+                  styles.viewApolloButtonText
+                }
+              >
+                View All
+              </Text>
+            </Pressable>
+          </View>
+
+          {curatedLoading ? (
+            <View
+              style={
+                styles.recipeLoading
+              }
+            >
+              <ActivityIndicator
+                size="small"
+                color={
+                  colors.primary
+                }
+              />
+
+              <Text
+                style={
+                  styles.secondaryText
+                }
+              >
+                Loading Apollo
+                recipes...
+              </Text>
+            </View>
+          ) : featuredApolloRecipes.length ===
+            0 ? (
+            <View
+              style={
+                styles.emptyRecipes
+              }
+            >
+              <Text
+                style={
+                  styles.emptyTitle
+                }
+              >
+                No featured recipes
+              </Text>
+
+              <Text
+                style={
+                  styles.secondaryText
+                }
+              >
+                Featured Apollo
+                recipes will appear
+                here.
+              </Text>
+            </View>
+          ) : (
+            <>
+              {featuredApolloRecipes.map(
+                (recipe) => {
+                  const perServing =
+                    calculatePerServing(
+                      recipe
+                    );
+
+                  return (
+                    <View
+                      key={
+                        recipe.id
+                      }
+                      style={
+                        styles.apolloRecipeCard
+                      }
+                    >
+                      <View
+                        style={
+                          styles.apolloBadgeRow
+                        }
+                      >
+                        <View
+                          style={
+                            styles.apolloBadge
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.apolloBadgeText
+                            }
+                          >
+                            APOLLO
+                          </Text>
+                        </View>
+
+                        {recipe.category ? (
+                          <View
+                            style={
+                              styles.apolloCategoryBadge
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.apolloCategoryText
+                              }
+                            >
+                              {
+                                recipe.category
+                              }
+                            </Text>
+                          </View>
+                        ) : null}
+
+                        <View
+                          style={
+                            styles.featuredBadge
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.featuredBadgeText
+                            }
+                          >
+                            ★ FEATURED
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View
+                        style={
+                          styles.recipeCardTop
+                        }
+                      >
+                        <View
+                          style={
+                            styles.recipeInfo
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.recipeName
+                            }
+                          >
+                            {
+                              recipe.name
+                            }
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.recipeServingText
+                            }
+                          >
+                            {
+                              recipe.servings
+                            }{' '}
+                            {recipe.servings ===
+                            1
+                              ? 'serving'
+                              : 'servings'}{' '}
+                            ·{' '}
+                            {
+                              recipe.ingredients
+                                .length
+                            }{' '}
+                            {recipe.ingredients
+                              .length ===
+                            1
+                              ? 'ingredient'
+                              : 'ingredients'}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={
+                            styles.recipeCaloriesArea
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.recipeCalories
+                            }
+                          >
+                            {
+                              perServing.calories
+                            }
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.recipeCaloriesLabel
+                            }
+                          >
+                            kcal / serving
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View
+                        style={
+                          styles.recipeMacroRow
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.recipeMacroText
+                          }
+                        >
+                          P{' '}
+                          {
+                            perServing.protein
+                          }
+                          g
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.recipeMacroText
+                          }
+                        >
+                          C{' '}
+                          {
+                            perServing.carbs
+                          }
+                          g
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.recipeMacroText
+                          }
+                        >
+                          F{' '}
+                          {
+                            perServing.fat
+                          }
+                          g
+                        </Text>
+                      </View>
+
+                      {recipe.description ? (
+                        <Text
+                          style={
+                            styles.recipeDescription
+                          }
+                          numberOfLines={2}
+                        >
+                          {
+                            recipe.description
+                          }
+                        </Text>
+                      ) : null}
+
+                      <Pressable
+                        style={({
+                          pressed,
+                        }) => [
+                          styles.apolloLogButton,
+
+                          pressed &&
+                            styles.pressed,
+                        ]}
+                        onPress={() =>
+                          openLogRecipe(
+                            recipe
+                          )
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.apolloLogButtonText
+                          }
+                        >
+                          Log Recipe
+                        </Text>
+                      </Pressable>
+                    </View>
+                  );
+                }
+              )}
+
+              <Pressable
+                style={({
+                  pressed,
+                }) => [
+                  styles.browseApolloButton,
+
+                  pressed &&
+                    styles.pressed,
+                ]}
+                onPress={
+                  handleViewRecipes
+                }
+              >
+                <Text
+                  style={
+                    styles.browseApolloButtonText
+                  }
+                >
+                  Browse Apollo Recipe
+                  Library
+                </Text>
+              </Pressable>
             </>
           )}
         </AppCard>
@@ -1359,6 +1769,7 @@ export default function FoodScreen() {
                       pressed,
                     }) => [
                       styles.copyMealButton,
+
                       pressed &&
                         styles.pressed,
                     ]}
@@ -2241,23 +2652,30 @@ const styles =
   StyleSheet.create({
     screen: {
       flex: 1,
+
       backgroundColor:
         colors.background,
     },
 
     container: {
       padding: spacing.lg,
+
       paddingBottom:
         spacing.xxl,
+
       gap: spacing.md,
     },
 
     header: {
       flexDirection: 'row',
+
       justifyContent:
         'space-between',
+
       alignItems: 'center',
+
       gap: spacing.md,
+
       marginBottom:
         spacing.sm,
     },
@@ -2268,16 +2686,20 @@ const styles =
 
     screenTitle: {
       color: colors.text,
+
       fontSize:
         fontSize.screenTitle,
+
       fontWeight: '700',
     },
 
     subtitle: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.body,
+
       marginTop:
         spacing.xs,
     },
@@ -2285,12 +2707,17 @@ const styles =
     addFoodButton: {
       backgroundColor:
         colors.primary,
+
       paddingHorizontal:
         spacing.md,
+
       paddingVertical:
         spacing.sm,
+
       borderRadius: 12,
+
       alignItems: 'center',
+
       justifyContent:
         'center',
     },
@@ -2298,103 +2725,135 @@ const styles =
     addFoodButtonText: {
       color:
         colors.background,
+
       fontSize:
         fontSize.body,
+
       fontWeight: '700',
     },
 
     copyDayButton: {
       backgroundColor:
         colors.surface,
+
       borderColor:
         colors.primary,
+
       borderWidth: 1,
+
       borderRadius: 12,
+
       padding: spacing.md,
+
       gap: spacing.xs,
     },
 
     copyDayButtonText: {
       color: colors.primary,
+
       fontSize:
         fontSize.body,
+
       fontWeight: '700',
     },
 
     copyDayButtonSubtext: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
     },
 
     cardTitle: {
       color: colors.text,
+
       fontSize:
         fontSize.title,
+
       fontWeight: '600',
     },
 
     recipeHeader: {
       flexDirection: 'row',
+
       justifyContent:
         'space-between',
+
       alignItems: 'center',
+
       gap: spacing.md,
     },
 
     recipeHeaderText: {
       flex: 1,
+
       gap: spacing.xs,
     },
 
     recipeHeaderActions: {
       flexDirection: 'row',
+
       alignItems: 'center',
+
       gap: spacing.sm,
     },
 
     viewRecipesButton: {
       borderColor:
         colors.primary,
+
       borderWidth: 1,
+
       paddingHorizontal:
         spacing.sm,
+
       paddingVertical:
         spacing.sm,
+
       borderRadius: 10,
     },
 
     viewRecipesButtonText: {
       color:
         colors.primary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '700',
     },
 
     createRecipeButton: {
       backgroundColor:
         colors.primary,
+
       paddingHorizontal:
         spacing.md,
+
       paddingVertical:
         spacing.sm,
+
       borderRadius: 10,
     },
 
     createRecipeButtonText: {
       color:
         colors.background,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '800',
     },
 
     recipeLoading: {
       flexDirection: 'row',
+
       alignItems: 'center',
+
       gap: spacing.sm,
+
       paddingVertical:
         spacing.md,
     },
@@ -2402,29 +2861,39 @@ const styles =
     emptyRecipes: {
       borderTopColor:
         colors.border,
+
       borderTopWidth: 1,
+
       paddingTop:
         spacing.md,
+
       gap: spacing.xs,
     },
 
     recipeCard: {
       borderTopColor:
         colors.border,
+
       borderTopWidth: 1,
+
       paddingTop:
         spacing.md,
+
       marginTop:
         spacing.sm,
+
       gap: spacing.sm,
     },
 
     recipeCardTop: {
       flexDirection: 'row',
+
       justifyContent:
         'space-between',
+
       alignItems:
         'flex-start',
+
       gap: spacing.md,
     },
 
@@ -2434,16 +2903,20 @@ const styles =
 
     recipeName: {
       color: colors.text,
+
       fontSize:
         fontSize.subtitle,
+
       fontWeight: '700',
     },
 
     recipeServingText: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
+
       marginTop:
         spacing.xs,
     },
@@ -2454,74 +2927,97 @@ const styles =
 
     recipeCalories: {
       color: colors.text,
+
       fontSize:
         fontSize.title,
+
       fontWeight: '700',
     },
 
     recipeCaloriesLabel: {
       color:
         colors.textSecondary,
+
       fontSize: 11,
+
       marginTop: 2,
     },
 
     recipeMacroRow: {
       flexDirection: 'row',
+
       gap: spacing.md,
     },
 
     recipeMacroText: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '600',
     },
 
     recipeDescription: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
+
       lineHeight: 18,
     },
 
     recipeActions: {
       flexDirection: 'row',
+
       alignItems: 'center',
+
       gap: spacing.sm,
+
       marginTop:
         spacing.xs,
     },
 
     logRecipeButton: {
       flex: 1,
+
       backgroundColor:
         colors.primary,
+
       borderRadius: 9,
+
       paddingVertical:
         spacing.sm,
+
       paddingHorizontal:
         spacing.md,
+
       alignItems: 'center',
     },
 
     logRecipeButtonText: {
       color:
         colors.background,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '800',
     },
 
     editRecipeButton: {
       borderColor:
         colors.primary,
+
       borderWidth: 1,
+
       borderRadius: 9,
+
       paddingVertical:
         spacing.sm,
+
       paddingHorizontal:
         spacing.md,
     },
@@ -2529,45 +3025,300 @@ const styles =
     editRecipeButtonText: {
       color:
         colors.primary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '700',
     },
 
     deleteRecipeButton: {
       borderColor:
         colors.danger,
+
       borderWidth: 1,
+
       borderRadius: 9,
+
       paddingVertical:
         spacing.sm,
+
       paddingHorizontal:
         spacing.md,
     },
 
     deleteRecipeButtonText: {
       color: colors.danger,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '700',
     },
 
     moreRecipesButton: {
       borderTopColor:
         colors.border,
+
       borderTopWidth: 1,
+
       marginTop:
         spacing.md,
+
       paddingTop:
         spacing.md,
+
       alignItems: 'center',
     },
 
     moreRecipesButtonText: {
       color:
         colors.primary,
+
       fontSize:
         fontSize.small,
+
+      fontWeight: '700',
+    },
+
+    apolloHeader: {
+      flexDirection: 'row',
+
+      justifyContent:
+        'space-between',
+
+      alignItems: 'center',
+
+      gap: spacing.md,
+    },
+
+    apolloHeaderText: {
+      flex: 1,
+
+      gap: spacing.xs,
+    },
+
+    apolloTitleRow: {
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      gap: spacing.sm,
+    },
+
+    apolloIcon: {
+      width: 28,
+
+      height: 28,
+
+      borderRadius: 14,
+
+      alignItems: 'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        colors.surfaceSecondary,
+
+      borderColor:
+        colors.primary,
+
+      borderWidth: 1,
+    },
+
+    apolloIconText: {
+      color:
+        colors.primary,
+
+      fontSize: 16,
+
+      fontWeight: '800',
+    },
+
+    viewApolloButton: {
+      borderColor:
+        colors.primary,
+
+      borderWidth: 1,
+
+      paddingHorizontal:
+        spacing.sm,
+
+      paddingVertical:
+        spacing.sm,
+
+      borderRadius: 10,
+    },
+
+    viewApolloButtonText: {
+      color:
+        colors.primary,
+
+      fontSize:
+        fontSize.small,
+
+      fontWeight: '700',
+    },
+
+    apolloRecipeCard: {
+      borderTopColor:
+        colors.border,
+
+      borderTopWidth: 1,
+
+      paddingTop:
+        spacing.md,
+
+      marginTop:
+        spacing.sm,
+
+      gap: spacing.sm,
+    },
+
+    apolloBadgeRow: {
+      flexDirection: 'row',
+
+      flexWrap: 'wrap',
+
+      alignItems: 'center',
+
+      gap: spacing.xs,
+    },
+
+    apolloBadge: {
+      borderColor:
+        colors.primary,
+
+      borderWidth: 1,
+
+      borderRadius: 6,
+
+      paddingHorizontal: 7,
+
+      paddingVertical: 3,
+
+      backgroundColor:
+        'rgba(74, 222, 128, 0.10)',
+    },
+
+    apolloBadgeText: {
+      color:
+        colors.primary,
+
+      fontSize: 9,
+
+      fontWeight: '800',
+
+      letterSpacing: 0.8,
+    },
+
+    apolloCategoryBadge: {
+      borderColor:
+        colors.border,
+
+      borderWidth: 1,
+
+      borderRadius: 6,
+
+      paddingHorizontal: 7,
+
+      paddingVertical: 3,
+
+      backgroundColor:
+        colors.surfaceSecondary,
+    },
+
+    apolloCategoryText: {
+      color:
+        colors.textSecondary,
+
+      fontSize: 9,
+
+      fontWeight: '700',
+
+      textTransform:
+        'uppercase',
+    },
+
+    featuredBadge: {
+      borderColor:
+        colors.border,
+
+      borderWidth: 1,
+
+      borderRadius: 6,
+
+      paddingHorizontal: 7,
+
+      paddingVertical: 3,
+
+      backgroundColor:
+        colors.surfaceSecondary,
+    },
+
+    featuredBadgeText: {
+      color:
+        colors.primary,
+
+      fontSize: 9,
+
+      fontWeight: '800',
+    },
+
+    apolloLogButton: {
+      backgroundColor:
+        colors.primary,
+
+      borderRadius: 9,
+
+      paddingVertical:
+        spacing.sm,
+
+      paddingHorizontal:
+        spacing.md,
+
+      alignItems: 'center',
+
+      marginTop:
+        spacing.xs,
+    },
+
+    apolloLogButtonText: {
+      color:
+        colors.background,
+
+      fontSize:
+        fontSize.small,
+
+      fontWeight: '800',
+    },
+
+    browseApolloButton: {
+      borderTopColor:
+        colors.border,
+
+      borderTopWidth: 1,
+
+      marginTop:
+        spacing.md,
+
+      paddingTop:
+        spacing.md,
+
+      paddingBottom:
+        spacing.xs,
+
+      alignItems: 'center',
+    },
+
+    browseApolloButtonText: {
+      color:
+        colors.primary,
+
+      fontSize:
+        fontSize.small,
+
       fontWeight: '700',
     },
 
@@ -2577,15 +3328,22 @@ const styles =
 
     recipeServingInput: {
       minHeight: 48,
+
       backgroundColor:
         colors.surfaceSecondary,
+
       borderColor:
         colors.border,
+
       borderWidth: 1,
+
       borderRadius: 10,
+
       paddingHorizontal:
         spacing.md,
+
       color: colors.text,
+
       fontSize:
         fontSize.body,
     },
@@ -2593,33 +3351,44 @@ const styles =
     recipePreview: {
       backgroundColor:
         colors.surfaceSecondary,
+
       borderColor:
         colors.border,
+
       borderWidth: 1,
+
       borderRadius: 12,
+
       padding: spacing.md,
+
       gap: spacing.xs,
     },
 
     recipePreviewLabel: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '700',
+
       letterSpacing: 1,
     },
 
     recipePreviewCalories: {
       color: colors.text,
+
       fontSize:
         fontSize.title,
+
       fontWeight: '700',
     },
 
     recipePreviewMacros: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
     },
@@ -2627,27 +3396,38 @@ const styles =
     mealPickerLabel: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '700',
+
       letterSpacing: 1,
     },
 
     mealPicker: {
       flexDirection: 'row',
+
       flexWrap: 'wrap',
+
       gap: spacing.sm,
     },
 
     mealChoiceButton: {
       width: '48%',
+
       minHeight: 46,
+
       backgroundColor:
         colors.primary,
+
       borderRadius: 10,
+
       alignItems: 'center',
+
       justifyContent:
         'center',
+
       paddingHorizontal:
         spacing.sm,
     },
@@ -2655,97 +3435,125 @@ const styles =
     mealChoiceButtonText: {
       color:
         colors.background,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '800',
     },
 
     cardHeader: {
       flexDirection: 'row',
+
       justifyContent:
         'space-between',
+
       alignItems: 'center',
+
       gap: spacing.md,
     },
 
     mealTitleArea: {
       flex: 1,
+
       gap: spacing.xs,
     },
 
     mealCalories: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '600',
     },
 
     copyMealButton: {
       borderColor:
         colors.primary,
+
       borderWidth: 1,
+
       borderRadius: 10,
+
       paddingHorizontal:
         spacing.sm,
+
       paddingVertical:
         spacing.xs,
     },
 
     copyMealButtonText: {
       color: colors.primary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '700',
     },
 
     label: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '600',
+
       letterSpacing: 1,
     },
 
     calorieRow: {
       flexDirection: 'row',
+
       alignItems: 'baseline',
+
       marginTop:
         spacing.xs,
     },
 
     calorieValue: {
       color: colors.text,
+
       fontSize: 36,
+
       fontWeight: '700',
     },
 
     calorieTarget: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.body,
     },
 
     progressTrack: {
       height: 8,
+
       backgroundColor:
         colors.surfaceSecondary,
+
       borderRadius: 100,
+
       marginTop:
         spacing.sm,
+
       overflow: 'hidden',
     },
 
     progressFill: {
       height: '100%',
+
       backgroundColor:
         colors.primary,
     },
 
     macroRow: {
       flexDirection: 'row',
+
       gap: spacing.md,
     },
 
@@ -2755,9 +3563,12 @@ const styles =
 
     macroValue: {
       color: colors.text,
+
       fontSize:
         fontSize.title,
+
       fontWeight: '700',
+
       marginTop:
         spacing.xs,
     },
@@ -2765,20 +3576,24 @@ const styles =
     macroTarget: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
     },
 
     emptyTitle: {
       color: colors.text,
+
       fontSize:
         fontSize.subtitle,
+
       fontWeight: '600',
     },
 
     secondaryText: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.body,
     },
@@ -2786,17 +3601,23 @@ const styles =
     foodEntry: {
       borderTopColor:
         colors.border,
+
       borderTopWidth: 1,
+
       paddingVertical:
         spacing.md,
+
       gap: spacing.sm,
     },
 
     foodEntryContent: {
       flexDirection: 'row',
+
       justifyContent:
         'space-between',
+
       alignItems: 'center',
+
       gap: spacing.md,
     },
 
@@ -2806,16 +3627,20 @@ const styles =
 
     foodName: {
       color: colors.text,
+
       fontSize:
         fontSize.body,
+
       fontWeight: '600',
     },
 
     foodDetails: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
+
       marginTop:
         spacing.xs,
     },
@@ -2826,36 +3651,45 @@ const styles =
 
     foodCalories: {
       color: colors.text,
+
       fontSize:
         fontSize.body,
+
       fontWeight: '600',
     },
 
     foodMacros: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
+
       marginTop:
         spacing.xs,
     },
 
     entryActions: {
       flexDirection: 'row',
+
       gap: spacing.md,
     },
 
     editButtonText: {
       color: colors.primary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '600',
     },
 
     deleteButtonText: {
       color: colors.danger,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '600',
     },
 
@@ -2869,54 +3703,75 @@ const styles =
 
     modalBackdrop: {
       flex: 1,
+
       backgroundColor:
         'rgba(0, 0, 0, 0.75)',
+
       justifyContent:
         'center',
+
       alignItems: 'center',
+
       padding: spacing.lg,
     },
 
     modalCard: {
       width: '100%',
+
       maxWidth: 440,
+
       maxHeight: '80%',
+
       backgroundColor:
         colors.surface,
+
       borderColor:
         colors.border,
+
       borderWidth: 1,
+
       borderRadius: 16,
+
       padding: spacing.lg,
+
       gap: spacing.md,
     },
 
     modalEyebrow: {
       color: colors.primary,
+
       fontSize:
         fontSize.small,
+
       fontWeight: '700',
+
       letterSpacing: 1,
     },
 
     modalTitle: {
       color: colors.text,
+
       fontSize:
         fontSize.title,
+
       fontWeight: '700',
     },
 
     modalSubtitle: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.body,
     },
 
     loadingRow: {
       flexDirection: 'row',
+
       alignItems: 'center',
+
       gap: spacing.sm,
+
       paddingVertical:
         spacing.md,
     },
@@ -2932,78 +3787,104 @@ const styles =
     historyDay: {
       backgroundColor:
         colors.surfaceSecondary,
+
       borderColor:
         colors.border,
+
       borderWidth: 1,
+
       borderRadius: 12,
+
       padding: spacing.md,
+
       flexDirection: 'row',
+
       justifyContent:
         'space-between',
+
       alignItems: 'center',
+
       gap: spacing.md,
     },
 
     historyDayInfo: {
       flex: 1,
+
       gap: spacing.xs,
     },
 
     historyDayTitle: {
       color: colors.text,
+
       fontSize:
         fontSize.body,
+
       fontWeight: '600',
     },
 
     historyDayDetails: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.small,
     },
 
     historyDayAction: {
       color: colors.primary,
+
       fontSize:
         fontSize.body,
+
       fontWeight: '700',
     },
 
     emptyHistory: {
       paddingVertical:
         spacing.lg,
+
       gap: spacing.sm,
+
       alignItems: 'center',
     },
 
     emptyHistoryTitle: {
       color: colors.text,
+
       fontSize:
         fontSize.subtitle,
+
       fontWeight: '600',
+
       textAlign: 'center',
     },
 
     errorBox: {
       backgroundColor:
         colors.surfaceSecondary,
+
       borderColor:
         colors.danger,
+
       borderWidth: 1,
+
       borderRadius: 12,
+
       padding: spacing.md,
     },
 
     errorText: {
       color: colors.danger,
+
       fontSize:
         fontSize.body,
+
       fontWeight: '600',
     },
 
     cancelButton: {
       alignItems: 'center',
+
       paddingVertical:
         spacing.sm,
     },
@@ -3011,8 +3892,10 @@ const styles =
     cancelButtonText: {
       color:
         colors.textSecondary,
+
       fontSize:
         fontSize.body,
+
       fontWeight: '600',
     },
   });
