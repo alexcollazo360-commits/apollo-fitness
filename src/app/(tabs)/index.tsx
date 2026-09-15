@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+
 import {
   ActivityIndicator,
   Alert,
@@ -15,12 +16,14 @@ import {
 } from 'react-native';
 
 import AppCard from '../../components/AppCard';
+
 import {
   borderRadius,
   colors,
   fontSize,
   spacing,
 } from '../../constants/theme';
+
 import { useFood } from '../../context/FoodContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useProgress } from '../../context/ProgressContext';
@@ -31,6 +34,13 @@ type Meal =
   | 'Lunch'
   | 'Dinner'
   | 'Snacks';
+
+const MEALS: Meal[] = [
+  'Breakfast',
+  'Lunch',
+  'Dinner',
+  'Snacks',
+];
 
 function getLocalDateString(date: Date) {
   const year = date.getFullYear();
@@ -132,28 +142,41 @@ export default function TodayScreen() {
     setSavingWeight,
   ] = useState(false);
 
-  const [foodName, setFoodName] =
-    useState('');
+  const [
+    foodName,
+    setFoodName,
+  ] = useState('');
 
-  const [calories, setCalories] =
-    useState('');
+  const [
+    calories,
+    setCalories,
+  ] = useState('');
 
-  const [protein, setProtein] =
-    useState('');
+  const [
+    protein,
+    setProtein,
+  ] = useState('');
 
-  const [carbs, setCarbs] =
-    useState('');
+  const [
+    carbs,
+    setCarbs,
+  ] = useState('');
 
-  const [fat, setFat] =
-    useState('');
+  const [
+    fat,
+    setFat,
+  ] = useState('');
 
-  const [serving, setServing] =
-    useState('');
+  const [
+    serving,
+    setServing,
+  ] = useState('');
 
   const [
     selectedMeal,
     setSelectedMeal,
-  ] = useState<Meal>('Breakfast');
+  ] =
+    useState<Meal>('Breakfast');
 
   const [
     workoutName,
@@ -166,71 +189,119 @@ export default function TodayScreen() {
   ] = useState('');
 
   const calorieTarget =
-    profile?.dailyCalorieTarget ?? 2200;
+    profile?.dailyCalorieTarget ??
+    2200;
 
   const proteinTarget =
-    profile?.proteinTarget ?? 180;
+    profile?.proteinTarget ??
+    180;
 
   const carbTarget =
-    profile?.carbTarget ?? 190;
+    profile?.carbTarget ??
+    190;
 
   const fatTarget =
-    profile?.fatTarget ?? 80;
+    profile?.fatTarget ??
+    80;
 
   const goalWeight =
-    profile?.goalWeight ?? null;
+    profile?.goalWeight ??
+    null;
 
-  const totalCalories = foodEntries.reduce(
-    (total, entry) =>
-      total + entry.calories,
-    0
-  );
+  const totalCalories =
+    foodEntries.reduce(
+      (total, entry) =>
+        total + entry.calories,
+      0
+    );
 
-  const totalProtein = foodEntries.reduce(
-    (total, entry) =>
-      total + entry.protein,
-    0
-  );
+  const totalProtein =
+    foodEntries.reduce(
+      (total, entry) =>
+        total + entry.protein,
+      0
+    );
 
-  const totalCarbs = foodEntries.reduce(
-    (total, entry) =>
-      total + entry.carbs,
-    0
-  );
+  const totalCarbs =
+    foodEntries.reduce(
+      (total, entry) =>
+        total + entry.carbs,
+      0
+    );
 
-  const totalFat = foodEntries.reduce(
-    (total, entry) =>
-      total + entry.fat,
-    0
-  );
+  const totalFat =
+    foodEntries.reduce(
+      (total, entry) =>
+        total + entry.fat,
+      0
+    );
 
-  const caloriesRemaining = Math.max(
-    calorieTarget - totalCalories,
-    0
-  );
+  const calorieDifference =
+    calorieTarget -
+    totalCalories;
 
-  const calorieProgress = getProgress(
-    totalCalories,
-    calorieTarget
-  );
+  const isOverCalories =
+    calorieDifference < 0;
 
-  const proteinProgress = getProgress(
-    totalProtein,
-    proteinTarget
-  );
+  const calorieStatusAmount =
+    Math.abs(
+      calorieDifference
+    );
 
-  const carbProgress = getProgress(
-    totalCarbs,
-    carbTarget
-  );
+  const calorieProgress =
+    getProgress(
+      totalCalories,
+      calorieTarget
+    );
 
-  const fatProgress = getProgress(
-    totalFat,
-    fatTarget
-  );
+  const proteinProgress =
+    getProgress(
+      totalProtein,
+      proteinTarget
+    );
+
+  const carbProgress =
+    getProgress(
+      totalCarbs,
+      carbTarget
+    );
+
+  const fatProgress =
+    getProgress(
+      totalFat,
+      fatTarget
+    );
+
+  const mealSummaries =
+    MEALS.map((meal) => {
+      const entries =
+        foodEntries.filter(
+          (entry) =>
+            entry.meal === meal
+        );
+
+      const mealCalories =
+        entries.reduce(
+          (total, entry) =>
+            total +
+            entry.calories,
+          0
+        );
+
+      return {
+        meal,
+        entries,
+        entryCount:
+          entries.length,
+        calories:
+          mealCalories,
+      };
+    });
 
   const todayDate =
-    getLocalDateString(new Date());
+    getLocalDateString(
+      new Date()
+    );
 
   const formattedDate =
     new Date().toLocaleDateString(
@@ -245,11 +316,13 @@ export default function TodayScreen() {
   const todaysCompletedWorkouts =
     workoutHistory.filter(
       (workout) =>
-        workout.workoutDate === todayDate
+        workout.workoutDate ===
+        todayDate
     );
 
   const todaysCompletedWorkout =
-    todaysCompletedWorkouts[0] ?? null;
+    todaysCompletedWorkouts[0] ??
+    null;
 
   const activeWorkoutIsToday =
     activeWorkout?.workoutDate ===
@@ -257,14 +330,17 @@ export default function TodayScreen() {
 
   const activeExerciseCount =
     activeWorkoutIsToday
-      ? activeWorkout?.exercises.length ??
-        0
+      ? activeWorkout?.exercises
+          .length ?? 0
       : 0;
 
   const activeSetCount =
     activeWorkoutIsToday
       ? activeWorkout?.exercises.reduce(
-          (total, exercise) =>
+          (
+            total,
+            exercise
+          ) =>
             total +
             exercise.sets.length,
           0
@@ -275,7 +351,8 @@ export default function TodayScreen() {
     currentWeight !== null &&
     goalWeight !== null
       ? Math.abs(
-          currentWeight - goalWeight
+          currentWeight -
+            goalWeight
         )
       : null;
 
@@ -283,7 +360,9 @@ export default function TodayScreen() {
     title: string,
     message: string
   ) {
-    if (Platform.OS === 'web') {
+    if (
+      Platform.OS === 'web'
+    ) {
       window.alert(
         `${title}\n\n${message}`
       );
@@ -291,19 +370,28 @@ export default function TodayScreen() {
       return;
     }
 
-    Alert.alert(title, message);
+    Alert.alert(
+      title,
+      message
+    );
   }
 
   function goToFood() {
-    router.push('/(tabs)/food');
+    router.push(
+      '/(tabs)/food'
+    );
   }
 
   function goToWorkout() {
-    router.push('/(tabs)/workout');
+    router.push(
+      '/(tabs)/workout'
+    );
   }
 
   function goToProgress() {
-    router.push('/(tabs)/progress');
+    router.push(
+      '/(tabs)/progress'
+    );
   }
 
   function resetFoodForm() {
@@ -313,13 +401,24 @@ export default function TodayScreen() {
     setCarbs('');
     setFat('');
     setServing('');
-    setSelectedMeal('Breakfast');
+    setSelectedMeal(
+      'Breakfast'
+    );
   }
 
-  function openFoodModal() {
+  function openFoodModal(
+    meal?: Meal
+  ) {
     resetFoodForm();
-    setSelectedMeal(getDefaultMeal());
-    setFoodModalVisible(true);
+
+    setSelectedMeal(
+      meal ??
+        getDefaultMeal()
+    );
+
+    setFoodModalVisible(
+      true
+    );
   }
 
   function closeFoodModal() {
@@ -328,11 +427,16 @@ export default function TodayScreen() {
     }
 
     resetFoodForm();
-    setFoodModalVisible(false);
+
+    setFoodModalVisible(
+      false
+    );
   }
 
   async function handleSaveFood() {
-    if (!foodName.trim()) {
+    if (
+      !foodName.trim()
+    ) {
       showMessage(
         'Food name required',
         'Enter a food name before saving.'
@@ -343,74 +447,118 @@ export default function TodayScreen() {
 
     setSavingFood(true);
 
-    await addFoodEntry({
-      name: foodName.trim(),
-      calories:
-        Number(calories) || 0,
-      protein:
-        Number(protein) || 0,
-      carbs:
-        Number(carbs) || 0,
-      fat:
-        Number(fat) || 0,
-      serving: serving.trim(),
-      meal: selectedMeal,
-    });
+    try {
+      await addFoodEntry({
+        name:
+          foodName.trim(),
 
-    setSavingFood(false);
+        calories:
+          Number(calories) ||
+          0,
 
-    resetFoodForm();
-    setFoodModalVisible(false);
+        protein:
+          Number(protein) ||
+          0,
+
+        carbs:
+          Number(carbs) ||
+          0,
+
+        fat:
+          Number(fat) ||
+          0,
+
+        serving:
+          serving.trim(),
+
+        meal:
+          selectedMeal,
+      });
+
+      resetFoodForm();
+
+      setFoodModalVisible(
+        false
+      );
+    } finally {
+      setSavingFood(false);
+    }
   }
 
   function openWorkoutModal() {
     setWorkoutName('');
-    setWorkoutModalVisible(true);
+
+    setWorkoutModalVisible(
+      true
+    );
   }
 
   function closeWorkoutModal() {
-    if (startingWorkout) {
+    if (
+      startingWorkout
+    ) {
       return;
     }
 
     setWorkoutName('');
-    setWorkoutModalVisible(false);
+
+    setWorkoutModalVisible(
+      false
+    );
   }
 
   async function handleStartWorkout() {
     const name =
-      workoutName.trim() === ''
+      workoutName.trim() ===
+      ''
         ? 'Workout'
         : workoutName.trim();
 
-    setStartingWorkout(true);
+    setStartingWorkout(
+      true
+    );
 
-    const success =
-      await startWorkout(name);
+    try {
+      const success =
+        await startWorkout(
+          name
+        );
 
-    setStartingWorkout(false);
+      if (!success) {
+        showMessage(
+          'Unable to start workout',
+          'There was a problem creating your workout.'
+        );
 
-    if (!success) {
-      showMessage(
-        'Unable to start workout',
-        'There was a problem creating your workout.'
+        return;
+      }
+
+      setWorkoutName('');
+
+      setWorkoutModalVisible(
+        false
       );
-
-      return;
+    } finally {
+      setStartingWorkout(
+        false
+      );
     }
-
-    setWorkoutName('');
-    setWorkoutModalVisible(false);
   }
 
   function handleContinueWorkout() {
-    setWorkoutModalVisible(false);
+    setWorkoutModalVisible(
+      false
+    );
+
     goToWorkout();
   }
 
   function openWeightModal() {
     setQuickWeight('');
-    setWeightModalVisible(true);
+
+    setWeightModalVisible(
+      true
+    );
   }
 
   function closeWeightModal() {
@@ -419,7 +567,10 @@ export default function TodayScreen() {
     }
 
     setQuickWeight('');
-    setWeightModalVisible(false);
+
+    setWeightModalVisible(
+      false
+    );
   }
 
   async function handleSaveWeight() {
@@ -427,8 +578,11 @@ export default function TodayScreen() {
       Number(quickWeight);
 
     if (
-      quickWeight.trim() === '' ||
-      Number.isNaN(parsedWeight) ||
+      quickWeight.trim() ===
+        '' ||
+      Number.isNaN(
+        parsedWeight
+      ) ||
       parsedWeight <= 0
     ) {
       showMessage(
@@ -441,14 +595,19 @@ export default function TodayScreen() {
 
     setSavingWeight(true);
 
-    await addWeightEntry(
-      parsedWeight
-    );
+    try {
+      await addWeightEntry(
+        parsedWeight
+      );
 
-    setSavingWeight(false);
+      setQuickWeight('');
 
-    setQuickWeight('');
-    setWeightModalVisible(false);
+      setWeightModalVisible(
+        false
+      );
+    } finally {
+      setSavingWeight(false);
+    }
   }
 
   return (
@@ -459,27 +618,40 @@ export default function TodayScreen() {
           styles.container
         }
       >
-        <View style={styles.header}>
+        <View
+          style={styles.header}
+        >
           <Text
-            style={styles.screenTitle}
+            style={
+              styles.screenTitle
+            }
           >
             Today
           </Text>
 
           <Text
-            style={styles.dateText}
+            style={
+              styles.dateText
+            }
           >
             {formattedDate}
           </Text>
         </View>
 
         <View
-          style={styles.quickActions}
+          style={
+            styles.quickActions
+          }
         >
           <Pressable
-            onPress={openFoodModal}
-            style={({ pressed }) => [
+            onPress={() =>
+              openFoodModal()
+            }
+            style={({
+              pressed,
+            }) => [
               styles.quickActionButton,
+
               pressed &&
                 styles.quickActionPressed,
             ]}
@@ -502,9 +674,14 @@ export default function TodayScreen() {
           </Pressable>
 
           <Pressable
-            onPress={openWorkoutModal}
-            style={({ pressed }) => [
+            onPress={
+              openWorkoutModal
+            }
+            style={({
+              pressed,
+            }) => [
               styles.quickActionButton,
+
               pressed &&
                 styles.quickActionPressed,
             ]}
@@ -531,9 +708,14 @@ export default function TodayScreen() {
           </Pressable>
 
           <Pressable
-            onPress={openWeightModal}
-            style={({ pressed }) => [
+            onPress={
+              openWeightModal
+            }
+            style={({
+              pressed,
+            }) => [
               styles.quickActionButton,
+
               pressed &&
                 styles.quickActionPressed,
             ]}
@@ -558,20 +740,28 @@ export default function TodayScreen() {
 
         <AppCard>
           <View
-            style={styles.cardHeader}
+            style={
+              styles.cardHeader
+            }
           >
             <Text
-              style={styles.cardTitle}
+              style={
+                styles.cardTitle
+              }
             >
               Daily Nutrition
             </Text>
 
             <Pressable
-              onPress={goToFood}
+              onPress={
+                goToFood
+              }
               hitSlop={12}
             >
               <Text
-                style={styles.accentText}
+                style={
+                  styles.accentText
+                }
               >
                 FOOD
               </Text>
@@ -579,12 +769,18 @@ export default function TodayScreen() {
           </View>
 
           <View>
-            <Text style={styles.label}>
+            <Text
+              style={
+                styles.label
+              }
+            >
               CALORIES
             </Text>
 
             <View
-              style={styles.calorieRow}
+              style={
+                styles.calorieRow
+              }
             >
               <Text
                 style={
@@ -617,6 +813,9 @@ export default function TodayScreen() {
                   {
                     width: `${calorieProgress}%`,
                   },
+
+                  isOverCalories &&
+                    styles.progressFillOver,
                 ]}
               />
             </View>
@@ -627,21 +826,35 @@ export default function TodayScreen() {
               }
             >
               <Text
-                style={
-                  styles.secondaryText
-                }
+                style={[
+                  styles.secondaryText,
+
+                  isOverCalories &&
+                    styles.overTargetText,
+                ]}
               >
-                {caloriesRemaining.toLocaleString()}{' '}
-                kcal remaining
+                {calorieStatusAmount.toLocaleString()}{' '}
+                kcal{' '}
+                {isOverCalories
+                  ? 'over target'
+                  : 'remaining'}
               </Text>
 
               <Text
-                style={
-                  styles.progressText
-                }
+                style={[
+                  styles.progressText,
+
+                  isOverCalories &&
+                    styles.overTargetText,
+                ]}
               >
                 {Math.round(
-                  calorieProgress
+                  (totalCalories /
+                    Math.max(
+                      calorieTarget,
+                      1
+                    )) *
+                    100
                 )}
                 %
               </Text>
@@ -649,10 +862,14 @@ export default function TodayScreen() {
           </View>
 
           <View
-            style={styles.macroList}
+            style={
+              styles.macroList
+            }
           >
             <View
-              style={styles.macroBlock}
+              style={
+                styles.macroBlock
+              }
             >
               <View
                 style={
@@ -660,7 +877,9 @@ export default function TodayScreen() {
                 }
               >
                 <Text
-                  style={styles.label}
+                  style={
+                    styles.label
+                  }
                 >
                   PROTEIN
                 </Text>
@@ -692,7 +911,9 @@ export default function TodayScreen() {
             </View>
 
             <View
-              style={styles.macroBlock}
+              style={
+                styles.macroBlock
+              }
             >
               <View
                 style={
@@ -700,7 +921,9 @@ export default function TodayScreen() {
                 }
               >
                 <Text
-                  style={styles.label}
+                  style={
+                    styles.label
+                  }
                 >
                   CARBS
                 </Text>
@@ -732,7 +955,9 @@ export default function TodayScreen() {
             </View>
 
             <View
-              style={styles.macroBlock}
+              style={
+                styles.macroBlock
+              }
             >
               <View
                 style={
@@ -740,7 +965,9 @@ export default function TodayScreen() {
                 }
               >
                 <Text
-                  style={styles.label}
+                  style={
+                    styles.label
+                  }
                 >
                   FAT
                 </Text>
@@ -771,24 +998,172 @@ export default function TodayScreen() {
               </View>
             </View>
           </View>
+
+          <View
+            style={
+              styles.mealsSection
+            }
+          >
+            <View
+              style={
+                styles.mealsHeader
+              }
+            >
+              <View>
+                <Text
+                  style={
+                    styles.mealsTitle
+                  }
+                >
+                  Today's Meals
+                </Text>
+
+                <Text
+                  style={
+                    styles.mealsSubtitle
+                  }
+                >
+                  Tap a meal to add food
+                </Text>
+              </View>
+
+              <Text
+                style={
+                  styles.mealsTotal
+                }
+              >
+                {foodEntries.length}{' '}
+                {foodEntries.length ===
+                1
+                  ? 'item'
+                  : 'items'}
+              </Text>
+            </View>
+
+            <View
+              style={
+                styles.mealSummaryList
+              }
+            >
+              {mealSummaries.map(
+                ({
+                  meal,
+                  calories:
+                    mealCalories,
+                  entryCount,
+                }) => (
+                  <Pressable
+                    key={meal}
+                    onPress={() =>
+                      openFoodModal(
+                        meal
+                      )
+                    }
+                    style={({
+                      pressed,
+                    }) => [
+                      styles.mealSummaryRow,
+
+                      pressed &&
+                        styles.mealSummaryPressed,
+                    ]}
+                  >
+                    <View
+                      style={
+                        styles.mealSummaryLeft
+                      }
+                    >
+                      <View
+                        style={[
+                          styles.mealStatusDot,
+
+                          entryCount >
+                            0 &&
+                            styles.mealStatusDotLogged,
+                        ]}
+                      />
+
+                      <View>
+                        <Text
+                          style={
+                            styles.mealSummaryName
+                          }
+                        >
+                          {meal}
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.mealSummaryItems
+                          }
+                        >
+                          {entryCount >
+                          0
+                            ? `${entryCount} ${
+                                entryCount ===
+                                1
+                                  ? 'item'
+                                  : 'items'
+                              } logged`
+                            : 'Nothing logged'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View
+                      style={
+                        styles.mealSummaryRight
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.mealSummaryCalories
+                        }
+                      >
+                        {
+                          mealCalories
+                        }
+                      </Text>
+
+                      <Text
+                        style={
+                          styles.mealSummaryUnit
+                        }
+                      >
+                        kcal
+                      </Text>
+                    </View>
+                  </Pressable>
+                )
+              )}
+            </View>
+          </View>
         </AppCard>
 
         <AppCard>
           <View
-            style={styles.cardHeader}
+            style={
+              styles.cardHeader
+            }
           >
             <Text
-              style={styles.cardTitle}
+              style={
+                styles.cardTitle
+              }
             >
               Today's Workout
             </Text>
 
             <Pressable
-              onPress={goToWorkout}
+              onPress={
+                goToWorkout
+              }
               hitSlop={12}
             >
               <Text
-                style={styles.accentText}
+                style={
+                  styles.accentText
+                }
               >
                 WORKOUT
               </Text>
@@ -797,13 +1172,17 @@ export default function TodayScreen() {
 
           {historyLoading ? (
             <ActivityIndicator
-              color={colors.primary}
+              color={
+                colors.primary
+              }
             />
           ) : activeWorkoutIsToday &&
             activeWorkout ? (
             <>
               <View
-                style={styles.statusRow}
+                style={
+                  styles.statusRow
+                }
               >
                 <View
                   style={
@@ -825,7 +1204,9 @@ export default function TodayScreen() {
                   styles.workoutName
                 }
               >
-                {activeWorkout.name}
+                {
+                  activeWorkout.name
+                }
               </Text>
 
               <View
@@ -867,7 +1248,9 @@ export default function TodayScreen() {
                       styles.workoutStatValue
                     }
                   >
-                    {activeSetCount}
+                    {
+                      activeSetCount
+                    }
                   </Text>
 
                   <Text
@@ -883,7 +1266,9 @@ export default function TodayScreen() {
           ) : todaysCompletedWorkout ? (
             <>
               <View
-                style={styles.statusRow}
+                style={
+                  styles.statusRow
+                }
               >
                 <View
                   style={
@@ -967,7 +1352,9 @@ export default function TodayScreen() {
           ) : (
             <>
               <Text
-                style={styles.emptyTitle}
+                style={
+                  styles.emptyTitle
+                }
               >
                 No workout logged
               </Text>
@@ -986,20 +1373,28 @@ export default function TodayScreen() {
 
         <AppCard>
           <View
-            style={styles.cardHeader}
+            style={
+              styles.cardHeader
+            }
           >
             <Text
-              style={styles.cardTitle}
+              style={
+                styles.cardTitle
+              }
             >
               Weight Progress
             </Text>
 
             <Pressable
-              onPress={goToProgress}
+              onPress={
+                goToProgress
+              }
               hitSlop={12}
             >
               <Text
-                style={styles.accentText}
+                style={
+                  styles.accentText
+                }
               >
                 PROGRESS
               </Text>
@@ -1009,12 +1404,17 @@ export default function TodayScreen() {
           {progressLoading ||
           profileLoading ? (
             <ActivityIndicator
-              color={colors.primary}
+              color={
+                colors.primary
+              }
             />
-          ) : currentWeight === null ? (
+          ) : currentWeight ===
+            null ? (
             <>
               <Text
-                style={styles.emptyTitle}
+                style={
+                  styles.emptyTitle
+                }
               >
                 No weight logged
               </Text>
@@ -1024,8 +1424,9 @@ export default function TodayScreen() {
                   styles.secondaryText
                 }
               >
-                Log your weight to begin
-                tracking your progress.
+                Log your weight to
+                begin tracking your
+                progress.
               </Text>
             </>
           ) : (
@@ -1037,7 +1438,9 @@ export default function TodayScreen() {
               >
                 <View>
                   <Text
-                    style={styles.label}
+                    style={
+                      styles.label
+                    }
                   >
                     CURRENT
                   </Text>
@@ -1047,18 +1450,24 @@ export default function TodayScreen() {
                       styles.weightValue
                     }
                   >
-                    {currentWeight} lbs
+                    {
+                      currentWeight
+                    }{' '}
+                    lbs
                   </Text>
                 </View>
 
-                {goalWeight !== null && (
+                {goalWeight !==
+                  null && (
                   <View
                     style={
                       styles.goalWeightBlock
                     }
                   >
                     <Text
-                      style={styles.label}
+                      style={
+                        styles.label
+                      }
                     >
                       GOAL
                     </Text>
@@ -1068,13 +1477,17 @@ export default function TodayScreen() {
                         styles.goalWeightValue
                       }
                     >
-                      {goalWeight} lbs
+                      {
+                        goalWeight
+                      }{' '}
+                      lbs
                     </Text>
                   </View>
                 )}
               </View>
 
-              {weightToGoal !== null && (
+              {weightToGoal !==
+                null && (
                 <View
                   style={
                     styles.weightRemainingBox
@@ -1105,28 +1518,41 @@ export default function TodayScreen() {
       </ScrollView>
 
       <Modal
-        visible={foodModalVisible}
+        visible={
+          foodModalVisible
+        }
         transparent
         animationType="fade"
-        onRequestClose={closeFoodModal}
+        onRequestClose={
+          closeFoodModal
+        }
       >
         <KeyboardAvoidingView
-          style={styles.modalOverlay}
+          style={
+            styles.modalOverlay
+          }
           behavior={
-            Platform.OS === 'ios'
+            Platform.OS ===
+            'ios'
               ? 'padding'
               : undefined
           }
         >
           <View
-            style={styles.largeModalCard}
+            style={
+              styles.largeModalCard
+            }
           >
             <View
-              style={styles.modalHeader}
+              style={
+                styles.modalHeader
+              }
             >
               <View>
                 <Text
-                  style={styles.modalTitle}
+                  style={
+                    styles.modalTitle
+                  }
                 >
                   Add Food
                 </Text>
@@ -1142,12 +1568,18 @@ export default function TodayScreen() {
               </View>
 
               <Pressable
-                onPress={closeFoodModal}
-                disabled={savingFood}
+                onPress={
+                  closeFoodModal
+                }
+                disabled={
+                  savingFood
+                }
                 hitSlop={12}
               >
                 <Text
-                  style={styles.closeText}
+                  style={
+                    styles.closeText
+                  }
                 >
                   ✕
                 </Text>
@@ -1161,15 +1593,25 @@ export default function TodayScreen() {
               }
             >
               <View
-                style={styles.inputGroup}
+                style={
+                  styles.inputGroup
+                }
               >
-                <Text style={styles.label}>
+                <Text
+                  style={
+                    styles.label
+                  }
+                >
                   FOOD NAME
                 </Text>
 
                 <TextInput
-                  style={styles.input}
-                  value={foodName}
+                  style={
+                    styles.input
+                  }
+                  value={
+                    foodName
+                  }
                   onChangeText={
                     setFoodName
                   }
@@ -1181,15 +1623,25 @@ export default function TodayScreen() {
               </View>
 
               <View
-                style={styles.inputGroup}
+                style={
+                  styles.inputGroup
+                }
               >
-                <Text style={styles.label}>
+                <Text
+                  style={
+                    styles.label
+                  }
+                >
                   CALORIES
                 </Text>
 
                 <TextInput
-                  style={styles.input}
-                  value={calories}
+                  style={
+                    styles.input
+                  }
+                  value={
+                    calories
+                  }
                   onChangeText={
                     setCalories
                   }
@@ -1202,7 +1654,9 @@ export default function TodayScreen() {
               </View>
 
               <View
-                style={styles.macroInputs}
+                style={
+                  styles.macroInputs
+                }
               >
                 <View
                   style={
@@ -1210,14 +1664,20 @@ export default function TodayScreen() {
                   }
                 >
                   <Text
-                    style={styles.label}
+                    style={
+                      styles.label
+                    }
                   >
                     PROTEIN
                   </Text>
 
                   <TextInput
-                    style={styles.input}
-                    value={protein}
+                    style={
+                      styles.input
+                    }
+                    value={
+                      protein
+                    }
                     onChangeText={
                       setProtein
                     }
@@ -1235,14 +1695,20 @@ export default function TodayScreen() {
                   }
                 >
                   <Text
-                    style={styles.label}
+                    style={
+                      styles.label
+                    }
                   >
                     CARBS
                   </Text>
 
                   <TextInput
-                    style={styles.input}
-                    value={carbs}
+                    style={
+                      styles.input
+                    }
+                    value={
+                      carbs
+                    }
                     onChangeText={
                       setCarbs
                     }
@@ -1260,15 +1726,23 @@ export default function TodayScreen() {
                   }
                 >
                   <Text
-                    style={styles.label}
+                    style={
+                      styles.label
+                    }
                   >
                     FAT
                   </Text>
 
                   <TextInput
-                    style={styles.input}
-                    value={fat}
-                    onChangeText={setFat}
+                    style={
+                      styles.input
+                    }
+                    value={
+                      fat
+                    }
+                    onChangeText={
+                      setFat
+                    }
                     placeholder="0"
                     placeholderTextColor={
                       colors.textSecondary
@@ -1279,15 +1753,25 @@ export default function TodayScreen() {
               </View>
 
               <View
-                style={styles.inputGroup}
+                style={
+                  styles.inputGroup
+                }
               >
-                <Text style={styles.label}>
+                <Text
+                  style={
+                    styles.label
+                  }
+                >
                   SERVING
                 </Text>
 
                 <TextInput
-                  style={styles.input}
-                  value={serving}
+                  style={
+                    styles.input
+                  }
+                  value={
+                    serving
+                  }
                   onChangeText={
                     setServing
                   }
@@ -1299,24 +1783,27 @@ export default function TodayScreen() {
               </View>
 
               <View
-                style={styles.inputGroup}
+                style={
+                  styles.inputGroup
+                }
               >
-                <Text style={styles.label}>
+                <Text
+                  style={
+                    styles.label
+                  }
+                >
                   MEAL
                 </Text>
 
                 <View
-                  style={styles.mealRow}
+                  style={
+                    styles.mealRow
+                  }
                 >
-                  {(
-                    [
-                      'Breakfast',
-                      'Lunch',
-                      'Dinner',
-                      'Snacks',
-                    ] as Meal[]
-                  ).map(
-                    (mealOption) => {
+                  {MEALS.map(
+                    (
+                      mealOption
+                    ) => {
                       const isSelected =
                         selectedMeal ===
                         mealOption;
@@ -1328,6 +1815,7 @@ export default function TodayScreen() {
                           }
                           style={[
                             styles.mealButton,
+
                             isSelected &&
                               styles.mealButtonSelected,
                           ]}
@@ -1340,11 +1828,14 @@ export default function TodayScreen() {
                           <Text
                             style={[
                               styles.mealButtonText,
+
                               isSelected &&
                                 styles.mealButtonTextSelected,
                             ]}
                           >
-                            {mealOption}
+                            {
+                              mealOption
+                            }
                           </Text>
                         </Pressable>
                       );
@@ -1354,10 +1845,15 @@ export default function TodayScreen() {
               </View>
 
               <Pressable
-                onPress={handleSaveFood}
-                disabled={savingFood}
+                onPress={
+                  handleSaveFood
+                }
+                disabled={
+                  savingFood
+                }
                 style={[
                   styles.primaryButton,
+
                   savingFood &&
                     styles.disabledButton,
                 ]}
@@ -1384,21 +1880,35 @@ export default function TodayScreen() {
       </Modal>
 
       <Modal
-        visible={workoutModalVisible}
+        visible={
+          workoutModalVisible
+        }
         transparent
         animationType="fade"
         onRequestClose={
           closeWorkoutModal
         }
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <View
+          style={
+            styles.modalOverlay
+          }
+        >
+          <View
+            style={
+              styles.modalCard
+            }
+          >
             <View
-              style={styles.modalHeader}
+              style={
+                styles.modalHeader
+              }
             >
               <View>
                 <Text
-                  style={styles.modalTitle}
+                  style={
+                    styles.modalTitle
+                  }
                 >
                   {activeWorkout
                     ? 'Resume Workout'
@@ -1426,7 +1936,9 @@ export default function TodayScreen() {
                 hitSlop={12}
               >
                 <Text
-                  style={styles.closeText}
+                  style={
+                    styles.closeText
+                  }
                 >
                   ✕
                 </Text>
@@ -1453,7 +1965,9 @@ export default function TodayScreen() {
                       styles.activeWorkoutName
                     }
                   >
-                    {activeWorkout.name}
+                    {
+                      activeWorkout.name
+                    }
                   </Text>
 
                   <View
@@ -1485,7 +1999,8 @@ export default function TodayScreen() {
                           exercise
                         ) =>
                           total +
-                          exercise.sets
+                          exercise
+                            .sets
                             .length,
                         0
                       )}{' '}
@@ -1514,17 +2029,25 @@ export default function TodayScreen() {
             ) : (
               <>
                 <View
-                  style={styles.inputGroup}
+                  style={
+                    styles.inputGroup
+                  }
                 >
                   <Text
-                    style={styles.label}
+                    style={
+                      styles.label
+                    }
                   >
                     WORKOUT NAME
                   </Text>
 
                   <TextInput
-                    style={styles.input}
-                    value={workoutName}
+                    style={
+                      styles.input
+                    }
+                    value={
+                      workoutName
+                    }
                     onChangeText={
                       setWorkoutName
                     }
@@ -1544,6 +2067,7 @@ export default function TodayScreen() {
                   }
                   style={[
                     styles.primaryButton,
+
                     startingWorkout &&
                       styles.disabledButton,
                   ]}
@@ -1571,21 +2095,35 @@ export default function TodayScreen() {
       </Modal>
 
       <Modal
-        visible={weightModalVisible}
+        visible={
+          weightModalVisible
+        }
         transparent
         animationType="fade"
         onRequestClose={
           closeWeightModal
         }
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <View
+          style={
+            styles.modalOverlay
+          }
+        >
+          <View
+            style={
+              styles.modalCard
+            }
+          >
             <View
-              style={styles.modalHeader}
+              style={
+                styles.modalHeader
+              }
             >
               <View>
                 <Text
-                  style={styles.modalTitle}
+                  style={
+                    styles.modalTitle
+                  }
                 >
                   Log Weight
                 </Text>
@@ -1603,25 +2141,32 @@ export default function TodayScreen() {
                 onPress={
                   closeWeightModal
                 }
-                disabled={savingWeight}
+                disabled={
+                  savingWeight
+                }
                 hitSlop={12}
               >
                 <Text
-                  style={styles.closeText}
+                  style={
+                    styles.closeText
+                  }
                 >
                   ✕
                 </Text>
               </Pressable>
             </View>
 
-            {currentWeight !== null && (
+            {currentWeight !==
+              null && (
               <View
                 style={
                   styles.currentWeightBox
                 }
               >
                 <Text
-                  style={styles.label}
+                  style={
+                    styles.label
+                  }
                 >
                   CURRENT WEIGHT
                 </Text>
@@ -1631,15 +2176,24 @@ export default function TodayScreen() {
                     styles.currentWeightText
                   }
                 >
-                  {currentWeight} lbs
+                  {
+                    currentWeight
+                  }{' '}
+                  lbs
                 </Text>
               </View>
             )}
 
             <View
-              style={styles.inputGroup}
+              style={
+                styles.inputGroup
+              }
             >
-              <Text style={styles.label}>
+              <Text
+                style={
+                  styles.label
+                }
+              >
                 WEIGHT
               </Text>
 
@@ -1652,7 +2206,9 @@ export default function TodayScreen() {
                   style={
                     styles.weightInput
                   }
-                  value={quickWeight}
+                  value={
+                    quickWeight
+                  }
                   onChangeText={
                     setQuickWeight
                   }
@@ -1662,7 +2218,9 @@ export default function TodayScreen() {
                   }
                   keyboardType="decimal-pad"
                   autoFocus
-                  editable={!savingWeight}
+                  editable={
+                    !savingWeight
+                  }
                   onSubmitEditing={
                     handleSaveWeight
                   }
@@ -1679,13 +2237,17 @@ export default function TodayScreen() {
             </View>
 
             <View
-              style={styles.modalActions}
+              style={
+                styles.modalActions
+              }
             >
               <Pressable
                 onPress={
                   closeWeightModal
                 }
-                disabled={savingWeight}
+                disabled={
+                  savingWeight
+                }
                 style={
                   styles.secondaryButton
                 }
@@ -1703,10 +2265,13 @@ export default function TodayScreen() {
                 onPress={
                   handleSaveWeight
                 }
-                disabled={savingWeight}
+                disabled={
+                  savingWeight
+                }
                 style={[
                   styles.primaryButton,
                   styles.modalPrimaryButton,
+
                   savingWeight &&
                     styles.disabledButton,
                 ]}
@@ -1735,496 +2300,736 @@ export default function TodayScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-
-  container: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
-    gap: spacing.md,
-  },
-
-  header: {
-    marginBottom: spacing.sm,
-  },
-
-  screenTitle: {
-    color: colors.text,
-    fontSize: fontSize.screenTitle,
-    fontWeight: '700',
-  },
-
-  dateText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-    marginTop: spacing.xs,
-  },
-
-  quickActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-
-  quickActionButton: {
-    flex: 1,
-    minHeight: 82,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    justifyContent: 'center',
-  },
-
-  quickActionPressed: {
-    backgroundColor:
-      colors.surfaceSecondary,
-    opacity: 0.85,
-  },
-
-  quickActionLabel: {
-    color: colors.primary,
-    fontSize: fontSize.small,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-
-  quickActionText: {
-    color: colors.text,
-    fontSize: fontSize.small,
-    fontWeight: '600',
-    marginTop: spacing.xs,
-  },
-
-  cardTitle: {
-    color: colors.text,
-    fontSize: fontSize.title,
-    fontWeight: '600',
-  },
-
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-
-  label: {
-    color: colors.textSecondary,
-    fontSize: fontSize.small,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
-
-  calorieRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: spacing.xs,
-  },
-
-  calorieValue: {
-    color: colors.text,
-    fontSize: 36,
-    fontWeight: '700',
-  },
-
-  calorieTarget: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
-
-  progressTrack: {
-    height: 8,
-    backgroundColor:
-      colors.surfaceSecondary,
-    borderRadius: borderRadius.xl,
-    marginTop: spacing.sm,
-    overflow: 'hidden',
-  },
-
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.xl,
-  },
-
-  calorieSummaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.sm,
-  },
-
-  progressText: {
-    color: colors.primary,
-    fontSize: fontSize.small,
-    fontWeight: '700',
-  },
-
-  macroList: {
-    gap: spacing.md,
-  },
-
-  macroBlock: {
-    gap: spacing.sm,
-  },
-
-  macroHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-
-  macroSummary: {
-    color: colors.text,
-    fontSize: fontSize.small,
-    fontWeight: '600',
-  },
-
-  macroProgressTrack: {
-    height: 6,
-    backgroundColor:
-      colors.surfaceSecondary,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-
-  macroProgressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-  },
-
-  accentText: {
-    color: colors.primary,
-    fontSize: fontSize.small,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-
-  emptyTitle: {
-    color: colors.text,
-    fontSize: fontSize.subtitle,
-    fontWeight: '600',
-  },
-
-  secondaryText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
-
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-
-  statusIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
-
-  statusText: {
-    color: colors.primary,
-    fontSize: fontSize.small,
-    fontWeight: '700',
-  },
-
-  workoutName: {
-    color: colors.text,
-    fontSize: fontSize.subtitle,
-    fontWeight: '700',
-  },
-
-  workoutStatsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-
-  workoutStat: {
-    flex: 1,
-    backgroundColor:
-      colors.surfaceSecondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-  },
-
-  workoutStatValue: {
-    color: colors.text,
-    fontSize: fontSize.title,
-    fontWeight: '700',
-  },
-
-  workoutStatLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.small,
-    marginTop: spacing.xs,
-  },
-
-  weightSummaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-
-  weightValue: {
-    color: colors.text,
-    fontSize: 36,
-    fontWeight: '700',
-  },
-
-  goalWeightBlock: {
-    alignItems: 'flex-end',
-  },
-
-  goalWeightValue: {
-    color: colors.primary,
-    fontSize: fontSize.subtitle,
-    fontWeight: '700',
-  },
-
-  weightRemainingBox: {
-    backgroundColor:
-      colors.surfaceSecondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.sm,
-  },
-
-  weightRemainingValue: {
-    color: colors.primary,
-    fontSize: fontSize.title,
-    fontWeight: '700',
-  },
-
-  weightRemainingLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor:
-      'rgba(0, 0, 0, 0.75)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
-
-  modalCard: {
-    width: '100%',
-    maxWidth: 430,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    gap: spacing.lg,
-  },
-
-  largeModalCard: {
-    width: '100%',
-    maxWidth: 520,
-    maxHeight: '90%',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-
-  modalTitle: {
-    color: colors.text,
-    fontSize: fontSize.title,
-    fontWeight: '700',
-  },
-
-  modalSubtitle: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-    marginTop: spacing.xs,
-  },
-
-  closeText: {
-    color: colors.textSecondary,
-    fontSize: 22,
-  },
-
-  modalScrollContent: {
-    gap: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-
-  inputGroup: {
-    gap: spacing.sm,
-  },
-
-  input: {
-    backgroundColor:
-      colors.surfaceSecondary,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    color: colors.text,
-    fontSize: fontSize.body,
-    padding: spacing.md,
-  },
-
-  macroInputs: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-
-  macroInput: {
-    flex: 1,
-    gap: spacing.sm,
-  },
-
-  mealRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-
-  mealButton: {
-    backgroundColor:
-      colors.surfaceSecondary,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-
-  mealButtonSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-
-  mealButtonText: {
-    color: colors.text,
-    fontSize: fontSize.body,
-  },
-
-  mealButtonTextSelected: {
-    color: colors.background,
-    fontWeight: '700',
-  },
-
-  primaryButton: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-
-  primaryButtonText: {
-    color: colors.background,
-    fontSize: fontSize.body,
-    fontWeight: '700',
-  },
-
-  disabledButton: {
-    opacity: 0.6,
-  },
-
-  activeWorkoutBox: {
-    backgroundColor:
-      colors.surfaceSecondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-
-  activeWorkoutLabel: {
-    color: colors.primary,
-    fontSize: fontSize.small,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-
-  activeWorkoutName: {
-    color: colors.text,
-    fontSize: fontSize.title,
-    fontWeight: '700',
-  },
-
-  modalWorkoutStats: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-
-  currentWeightBox: {
-    backgroundColor:
-      colors.surfaceSecondary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-  },
-
-  currentWeightText: {
-    color: colors.text,
-    fontSize: fontSize.subtitle,
-    fontWeight: '700',
-    marginTop: spacing.xs,
-  },
-
-  weightInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor:
-      colors.surfaceSecondary,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-  },
-
-  weightInput: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '700',
-    paddingVertical: spacing.md,
-  },
-
-  weightUnit: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
-
-  modalActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-
-  secondaryButton: {
-    flex: 1,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-
-  secondaryButtonText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-    fontWeight: '700',
-  },
-
-  modalPrimaryButton: {
-    flex: 1,
-  },
-});
+const styles =
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor:
+        colors.background,
+    },
+
+    container: {
+      padding: spacing.lg,
+      paddingBottom:
+        spacing.xxl,
+      gap: spacing.md,
+    },
+
+    header: {
+      marginBottom:
+        spacing.sm,
+    },
+
+    screenTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.screenTitle,
+      fontWeight: '700',
+    },
+
+    dateText: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+      marginTop:
+        spacing.xs,
+    },
+
+    quickActions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+
+    quickActionButton: {
+      flex: 1,
+      minHeight: 82,
+      backgroundColor:
+        colors.surface,
+      borderColor:
+        colors.border,
+      borderWidth: 1,
+      borderRadius:
+        borderRadius.lg,
+      padding: spacing.md,
+      justifyContent:
+        'center',
+    },
+
+    quickActionPressed: {
+      backgroundColor:
+        colors.surfaceSecondary,
+      opacity: 0.85,
+    },
+
+    quickActionLabel: {
+      color:
+        colors.primary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
+
+    quickActionText: {
+      color: colors.text,
+      fontSize:
+        fontSize.small,
+      fontWeight: '600',
+      marginTop:
+        spacing.xs,
+    },
+
+    cardTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.title,
+      fontWeight: '600',
+    },
+
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+
+    label: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '600',
+      letterSpacing: 1,
+    },
+
+    calorieRow: {
+      flexDirection: 'row',
+      alignItems:
+        'baseline',
+      marginTop:
+        spacing.xs,
+    },
+
+    calorieValue: {
+      color: colors.text,
+      fontSize: 36,
+      fontWeight: '700',
+    },
+
+    calorieTarget: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+    },
+
+    progressTrack: {
+      height: 8,
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius:
+        borderRadius.xl,
+      marginTop:
+        spacing.sm,
+      overflow: 'hidden',
+    },
+
+    progressFill: {
+      height: '100%',
+      backgroundColor:
+        colors.primary,
+      borderRadius:
+        borderRadius.xl,
+    },
+
+    progressFillOver: {
+      backgroundColor:
+        colors.warning,
+    },
+
+    calorieSummaryRow: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      marginTop:
+        spacing.sm,
+    },
+
+    progressText: {
+      color:
+        colors.primary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+    },
+
+    overTargetText: {
+      color:
+        colors.warning,
+    },
+
+    macroList: {
+      gap: spacing.md,
+    },
+
+    macroBlock: {
+      gap: spacing.sm,
+    },
+
+    macroHeaderRow: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+    },
+
+    macroSummary: {
+      color: colors.text,
+      fontSize:
+        fontSize.small,
+      fontWeight: '600',
+    },
+
+    macroProgressTrack: {
+      height: 6,
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius:
+        borderRadius.xl,
+      overflow: 'hidden',
+    },
+
+    macroProgressFill: {
+      height: '100%',
+      backgroundColor:
+        colors.primary,
+    },
+
+    mealsSection: {
+      borderTopColor:
+        colors.border,
+      borderTopWidth: 1,
+      paddingTop:
+        spacing.md,
+      gap: spacing.md,
+    },
+
+    mealsHeader: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+
+    mealsTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.subtitle,
+      fontWeight: '700',
+    },
+
+    mealsSubtitle: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      marginTop:
+        spacing.xs,
+    },
+
+    mealsTotal: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '600',
+    },
+
+    mealSummaryList: {
+      gap: spacing.sm,
+    },
+
+    mealSummaryRow: {
+      minHeight: 62,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderColor:
+        colors.border,
+      borderWidth: 1,
+      borderRadius:
+        borderRadius.md,
+      paddingHorizontal:
+        spacing.md,
+      paddingVertical:
+        spacing.sm,
+      gap: spacing.md,
+    },
+
+    mealSummaryPressed: {
+      opacity: 0.8,
+    },
+
+    mealSummaryLeft: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+
+    mealStatusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor:
+        colors.border,
+    },
+
+    mealStatusDotLogged: {
+      backgroundColor:
+        colors.primary,
+    },
+
+    mealSummaryName: {
+      color: colors.text,
+      fontSize:
+        fontSize.body,
+      fontWeight: '600',
+    },
+
+    mealSummaryItems: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      marginTop: 2,
+    },
+
+    mealSummaryRight: {
+      alignItems:
+        'flex-end',
+    },
+
+    mealSummaryCalories: {
+      color: colors.text,
+      fontSize:
+        fontSize.body,
+      fontWeight: '700',
+    },
+
+    mealSummaryUnit: {
+      color:
+        colors.textSecondary,
+      fontSize: 11,
+    },
+
+    accentText: {
+      color:
+        colors.primary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
+
+    emptyTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.subtitle,
+      fontWeight: '600',
+    },
+
+    secondaryText: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+    },
+
+    statusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+
+    statusIndicator: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor:
+        colors.primary,
+    },
+
+    statusText: {
+      color:
+        colors.primary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+    },
+
+    workoutName: {
+      color: colors.text,
+      fontSize:
+        fontSize.subtitle,
+      fontWeight: '700',
+    },
+
+    workoutStatsRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+
+    workoutStat: {
+      flex: 1,
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius:
+        borderRadius.md,
+      padding: spacing.md,
+    },
+
+    workoutStatValue: {
+      color: colors.text,
+      fontSize:
+        fontSize.title,
+      fontWeight: '700',
+    },
+
+    workoutStatLabel: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      marginTop:
+        spacing.xs,
+    },
+
+    weightSummaryRow: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems:
+        'flex-end',
+    },
+
+    weightValue: {
+      color: colors.text,
+      fontSize: 36,
+      fontWeight: '700',
+    },
+
+    goalWeightBlock: {
+      alignItems:
+        'flex-end',
+    },
+
+    goalWeightValue: {
+      color:
+        colors.primary,
+      fontSize:
+        fontSize.subtitle,
+      fontWeight: '700',
+    },
+
+    weightRemainingBox: {
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius:
+        borderRadius.md,
+      padding: spacing.md,
+      flexDirection: 'row',
+      alignItems:
+        'baseline',
+      gap: spacing.sm,
+    },
+
+    weightRemainingValue: {
+      color:
+        colors.primary,
+      fontSize:
+        fontSize.title,
+      fontWeight: '700',
+    },
+
+    weightRemainingLabel: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+    },
+
+    modalOverlay: {
+      flex: 1,
+      backgroundColor:
+        'rgba(0, 0, 0, 0.75)',
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      padding: spacing.lg,
+    },
+
+    modalCard: {
+      width: '100%',
+      maxWidth: 430,
+      backgroundColor:
+        colors.surface,
+      borderColor:
+        colors.border,
+      borderWidth: 1,
+      borderRadius:
+        borderRadius.lg,
+      padding: spacing.lg,
+      gap: spacing.lg,
+    },
+
+    largeModalCard: {
+      width: '100%',
+      maxWidth: 520,
+      maxHeight: '90%',
+      backgroundColor:
+        colors.surface,
+      borderColor:
+        colors.border,
+      borderWidth: 1,
+      borderRadius:
+        borderRadius.lg,
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
+
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems:
+        'flex-start',
+      gap: spacing.md,
+    },
+
+    modalTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.title,
+      fontWeight: '700',
+    },
+
+    modalSubtitle: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+      marginTop:
+        spacing.xs,
+    },
+
+    closeText: {
+      color:
+        colors.textSecondary,
+      fontSize: 22,
+    },
+
+    modalScrollContent: {
+      gap: spacing.md,
+      paddingBottom:
+        spacing.sm,
+    },
+
+    inputGroup: {
+      gap: spacing.sm,
+    },
+
+    input: {
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderColor:
+        colors.border,
+      borderWidth: 1,
+      borderRadius:
+        borderRadius.md,
+      color: colors.text,
+      fontSize:
+        fontSize.body,
+      padding: spacing.md,
+    },
+
+    macroInputs: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+
+    macroInput: {
+      flex: 1,
+      gap: spacing.sm,
+    },
+
+    mealRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+
+    mealButton: {
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderColor:
+        colors.border,
+      borderWidth: 1,
+      borderRadius:
+        borderRadius.md,
+      paddingHorizontal:
+        spacing.md,
+      paddingVertical:
+        spacing.sm,
+    },
+
+    mealButtonSelected: {
+      backgroundColor:
+        colors.primary,
+      borderColor:
+        colors.primary,
+    },
+
+    mealButtonText: {
+      color: colors.text,
+      fontSize:
+        fontSize.body,
+    },
+
+    mealButtonTextSelected: {
+      color:
+        colors.background,
+      fontWeight: '700',
+    },
+
+    primaryButton: {
+      backgroundColor:
+        colors.primary,
+      borderRadius:
+        borderRadius.md,
+      padding: spacing.md,
+      alignItems: 'center',
+    },
+
+    primaryButtonText: {
+      color:
+        colors.background,
+      fontSize:
+        fontSize.body,
+      fontWeight: '700',
+    },
+
+    disabledButton: {
+      opacity: 0.6,
+    },
+
+    activeWorkoutBox: {
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius:
+        borderRadius.md,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+
+    activeWorkoutLabel: {
+      color:
+        colors.primary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
+
+    activeWorkoutName: {
+      color: colors.text,
+      fontSize:
+        fontSize.title,
+      fontWeight: '700',
+    },
+
+    modalWorkoutStats: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+    },
+
+    currentWeightBox: {
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius:
+        borderRadius.md,
+      padding: spacing.md,
+    },
+
+    currentWeightText: {
+      color: colors.text,
+      fontSize:
+        fontSize.subtitle,
+      fontWeight: '700',
+      marginTop:
+        spacing.xs,
+    },
+
+    weightInputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderColor:
+        colors.border,
+      borderWidth: 1,
+      borderRadius:
+        borderRadius.md,
+      paddingHorizontal:
+        spacing.md,
+    },
+
+    weightInput: {
+      flex: 1,
+      color: colors.text,
+      fontSize: 28,
+      fontWeight: '700',
+      paddingVertical:
+        spacing.md,
+    },
+
+    weightUnit: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+    },
+
+    modalActions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+
+    secondaryButton: {
+      flex: 1,
+      borderColor:
+        colors.border,
+      borderWidth: 1,
+      borderRadius:
+        borderRadius.md,
+      padding: spacing.md,
+      alignItems: 'center',
+    },
+
+    secondaryButtonText: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+      fontWeight: '700',
+    },
+
+    modalPrimaryButton: {
+      flex: 1,
+    },
+  });

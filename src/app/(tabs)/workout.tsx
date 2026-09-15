@@ -1,5 +1,10 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import {
   ActivityIndicator,
@@ -239,18 +244,14 @@ function SetRow({
                 styles.completedButtonText,
             ]}
           >
-            {set.completed
-              ? '✓'
-              : '○'}
+            {set.completed ? '✓' : '○'}
           </Text>
         )}
       </Pressable>
 
       <Pressable
         style={styles.deleteSetButton}
-        disabled={
-          deleting || saving
-        }
+        disabled={deleting || saving}
         onPress={() =>
           onDelete(
             set.id,
@@ -265,9 +266,7 @@ function SetRow({
           />
         ) : (
           <Text
-            style={
-              styles.deleteSetText
-            }
+            style={styles.deleteSetText}
           >
             ×
           </Text>
@@ -279,6 +278,15 @@ function SetRow({
 
 export default function WorkoutScreen() {
   const router = useRouter();
+
+  const scrollViewRef =
+    useRef<ScrollView>(null);
+
+  const exerciseSearchRef =
+    useRef<TextInput>(null);
+
+  const addExerciseY =
+    useRef(0);
 
   const {
     activeWorkout,
@@ -414,6 +422,34 @@ export default function WorkoutScreen() {
         .slice(0, 12);
     }, [exerciseSearch]);
 
+  const totalActiveSets =
+    activeWorkout?.exercises.reduce(
+      (total, exercise) =>
+        total +
+        exercise.sets.length,
+      0
+    ) ?? 0;
+
+  const completedActiveSets =
+    activeWorkout?.exercises.reduce(
+      (total, exercise) =>
+        total +
+        exercise.sets.filter(
+          (set) => set.completed
+        ).length,
+      0
+    ) ?? 0;
+
+  const workoutProgress =
+    totalActiveSets > 0
+      ? Math.min(
+          (completedActiveSets /
+            totalActiveSets) *
+            100,
+          100
+        )
+      : 0;
+
   function showMessage(
     title: string,
     message: string
@@ -434,6 +470,23 @@ export default function WorkoutScreen() {
     setSelectedExercise(null);
     setCustomExerciseMode(false);
     setCustomExerciseName('');
+  }
+
+  function scrollToAddExercise() {
+    resetExercisePicker();
+
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(
+        addExerciseY.current -
+          spacing.md,
+        0
+      ),
+      animated: true,
+    });
+
+    setTimeout(() => {
+      exerciseSearchRef.current?.focus();
+    }, 400);
   }
 
   function selectLibraryExercise(
@@ -971,8 +1024,7 @@ export default function WorkoutScreen() {
 
     const {
       data: exerciseData,
-      error:
-        exerciseLoadError,
+      error: exerciseLoadError,
     } = await supabase
       .from('workout_exercises')
       .select('id')
@@ -1005,8 +1057,7 @@ export default function WorkoutScreen() {
 
     if (exerciseIds.length > 0) {
       const {
-        error:
-          setDeleteError,
+        error: setDeleteError,
       } = await supabase
         .from('workout_sets')
         .delete()
@@ -1032,8 +1083,7 @@ export default function WorkoutScreen() {
       }
 
       const {
-        error:
-          exerciseDeleteError,
+        error: exerciseDeleteError,
       } = await supabase
         .from('workout_exercises')
         .delete()
@@ -1060,8 +1110,7 @@ export default function WorkoutScreen() {
     }
 
     const {
-      error:
-        workoutDeleteError,
+      error: workoutDeleteError,
     } = await supabase
       .from('workouts')
       .delete()
@@ -1162,6 +1211,7 @@ export default function WorkoutScreen() {
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       style={styles.screen}
       contentContainerStyle={
         styles.container
@@ -1259,16 +1309,7 @@ export default function WorkoutScreen() {
                     styles.statValue
                   }
                 >
-                  {activeWorkout.exercises.reduce(
-                    (
-                      total,
-                      exercise
-                    ) =>
-                      total +
-                      exercise.sets
-                        .length,
-                    0
-                  )}
+                  {totalActiveSets}
                 </Text>
 
                 <Text
@@ -1278,6 +1319,76 @@ export default function WorkoutScreen() {
                 >
                   Sets
                 </Text>
+              </View>
+
+              <View
+                style={
+                  styles.statItem
+                }
+              >
+                <Text
+                  style={[
+                    styles.statValue,
+                    completedActiveSets >
+                      0 &&
+                      styles.completedStatValue,
+                  ]}
+                >
+                  {completedActiveSets}
+                </Text>
+
+                <Text
+                  style={
+                    styles.statLabel
+                  }
+                >
+                  Completed
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={
+                styles.workoutProgressSection
+              }
+            >
+              <View
+                style={
+                  styles.workoutProgressHeader
+                }
+              >
+                <Text
+                  style={
+                    styles.label
+                  }
+                >
+                  WORKOUT PROGRESS
+                </Text>
+
+                <Text
+                  style={
+                    styles.workoutProgressText
+                  }
+                >
+                  {completedActiveSets}{' '}
+                  of {totalActiveSets}{' '}
+                  sets
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.workoutProgressTrack
+                }
+              >
+                <View
+                  style={[
+                    styles.workoutProgressFill,
+                    {
+                      width: `${workoutProgress}%`,
+                    },
+                  ]}
+                />
               </View>
             </View>
 
@@ -1319,377 +1430,415 @@ export default function WorkoutScreen() {
             </Pressable>
           </AppCard>
 
-          <AppCard>
-            <Text style={styles.cardTitle}>
-              Add Exercise
-            </Text>
+          <View
+            onLayout={(event) => {
+              addExerciseY.current =
+                event.nativeEvent.layout.y;
+            }}
+          >
+            <AppCard>
+              <Text style={styles.cardTitle}>
+                Add Exercise
+              </Text>
 
-            <Text
-              style={
-                styles.secondaryText
-              }
-            >
-              Search the exercise library or add a custom exercise.
-            </Text>
+              <Text
+                style={
+                  styles.secondaryText
+                }
+              >
+                Search the exercise library or add a custom exercise.
+              </Text>
 
-            {!customExerciseMode ? (
-              <>
-                <View
-                  style={
-                    styles.inputGroup
-                  }
-                >
-                  <Text
-                    style={
-                      styles.label
-                    }
-                  >
-                    SEARCH EXERCISES
-                  </Text>
-
-                  <TextInput
-                    style={styles.input}
-                    value={
-                      exerciseSearch
-                    }
-                    onChangeText={(
-                      value
-                    ) => {
-                      setExerciseSearch(
-                        value
-                      );
-
-                      setSelectedExercise(
-                        null
-                      );
-                    }}
-                    placeholder="Bench press, back, biceps..."
-                    placeholderTextColor={
-                      colors.textSecondary
-                    }
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                  />
-                </View>
-
-                {selectedExercise ? (
+              {!customExerciseMode ? (
+                <>
                   <View
                     style={
-                      styles.selectedExerciseCard
+                      styles.inputGroup
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.label
+                      }
+                    >
+                      SEARCH EXERCISES
+                    </Text>
+
+                    <TextInput
+                      ref={
+                        exerciseSearchRef
+                      }
+                      style={
+                        styles.input
+                      }
+                      value={
+                        exerciseSearch
+                      }
+                      onChangeText={(
+                        value
+                      ) => {
+                        setExerciseSearch(
+                          value
+                        );
+
+                        setSelectedExercise(
+                          null
+                        );
+                      }}
+                      placeholder="Bench press, back, biceps..."
+                      placeholderTextColor={
+                        colors.textSecondary
+                      }
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                    />
+                  </View>
+
+                  {selectedExercise ? (
+                    <View
+                      style={
+                        styles.selectedExerciseCard
+                      }
+                    >
+                      <View
+                        style={
+                          styles.selectedExerciseInfo
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.selectedExerciseLabel
+                          }
+                        >
+                          SELECTED
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.selectedExerciseName
+                          }
+                        >
+                          {
+                            selectedExercise.name
+                          }
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.selectedExerciseCategory
+                          }
+                        >
+                          {
+                            selectedExercise.category
+                          }
+                        </Text>
+                      </View>
+
+                      <Pressable
+                        style={
+                          styles.clearSelectionButton
+                        }
+                        onPress={() => {
+                          setSelectedExercise(
+                            null
+                          );
+
+                          setExerciseSearch(
+                            ''
+                          );
+                        }}
+                      >
+                        <Text
+                          style={
+                            styles.clearSelectionText
+                          }
+                        >
+                          CHANGE
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : exerciseSearch.trim() !==
+                    '' ? (
+                    <View
+                      style={
+                        styles.searchResults
+                      }
+                    >
+                      {filteredExercises.length >
+                      0 ? (
+                        filteredExercises.map(
+                          (
+                            exercise
+                          ) => (
+                            <Pressable
+                              key={`${exercise.category}-${exercise.name}`}
+                              style={
+                                styles.searchResultRow
+                              }
+                              onPress={() =>
+                                selectLibraryExercise(
+                                  exercise
+                                )
+                              }
+                            >
+                              <View
+                                style={
+                                  styles.searchResultInfo
+                                }
+                              >
+                                <Text
+                                  style={
+                                    styles.searchResultName
+                                  }
+                                >
+                                  {
+                                    exercise.name
+                                  }
+                                </Text>
+
+                                <Text
+                                  style={
+                                    styles.searchResultCategory
+                                  }
+                                >
+                                  {
+                                    exercise.category
+                                  }
+                                </Text>
+                              </View>
+
+                              <Text
+                                style={
+                                  styles.searchResultAction
+                                }
+                              >
+                                SELECT
+                              </Text>
+                            </Pressable>
+                          )
+                        )
+                      ) : (
+                        <View
+                          style={
+                            styles.noSearchResults
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.emptyTitle
+                            }
+                          >
+                            No exercises found
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.secondaryText
+                            }
+                          >
+                            Try another search or add it as a custom exercise.
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    <View
+                      style={
+                        styles.searchHint
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.searchHintText
+                        }
+                      >
+                        Search by exercise name or muscle group.
+                      </Text>
+                    </View>
+                  )}
+
+                  <Pressable
+                    style={[
+                      styles.primaryButton,
+                      (!selectedExercise ||
+                        addingExercise) &&
+                        styles.disabledButton,
+                    ]}
+                    onPress={
+                      handleAddExercise
+                    }
+                    disabled={
+                      !selectedExercise ||
+                      addingExercise
+                    }
+                  >
+                    {addingExercise ? (
+                      <ActivityIndicator
+                        color={
+                          colors.background
+                        }
+                      />
+                    ) : (
+                      <Text
+                        style={
+                          styles.primaryButtonText
+                        }
+                      >
+                        ADD EXERCISE
+                      </Text>
+                    )}
+                  </Pressable>
+
+                  <View
+                    style={
+                      styles.orRow
                     }
                   >
                     <View
                       style={
-                        styles.selectedExerciseInfo
+                        styles.orLine
+                      }
+                    />
+
+                    <Text
+                      style={
+                        styles.orText
+                      }
+                    >
+                      OR
+                    </Text>
+
+                    <View
+                      style={
+                        styles.orLine
+                      }
+                    />
+                  </View>
+
+                  <Pressable
+                    style={
+                      styles.customExerciseButton
+                    }
+                    onPress={
+                      openCustomExerciseMode
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.customExerciseButtonText
+                      }
+                    >
+                      + CUSTOM EXERCISE
+                    </Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <View
+                    style={
+                      styles.customHeader
+                    }
+                  >
+                    <View
+                      style={
+                        styles.customHeaderInfo
                       }
                     >
                       <Text
                         style={
-                          styles.selectedExerciseLabel
+                          styles.label
                         }
                       >
-                        SELECTED
+                        CUSTOM EXERCISE
                       </Text>
 
                       <Text
                         style={
-                          styles.selectedExerciseName
+                          styles.secondaryText
                         }
                       >
-                        {
-                          selectedExercise.name
-                        }
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.selectedExerciseCategory
-                        }
-                      >
-                        {
-                          selectedExercise.category
-                        }
+                        Add an exercise that is not in the library.
                       </Text>
                     </View>
 
                     <Pressable
-                      style={
-                        styles.clearSelectionButton
+                      onPress={
+                        cancelCustomExerciseMode
                       }
-                      onPress={() => {
-                        setSelectedExercise(
-                          null
-                        );
-
-                        setExerciseSearch(
-                          ''
-                        );
-                      }}
                     >
                       <Text
                         style={
-                          styles.clearSelectionText
+                          styles.cancelCustomText
                         }
                       >
-                        CHANGE
+                        CANCEL
                       </Text>
                     </Pressable>
                   </View>
-                ) : exerciseSearch.trim() !==
-                  '' ? (
-                  <View
+
+                  <TextInput
                     style={
-                      styles.searchResults
+                      styles.input
                     }
-                  >
-                    {filteredExercises.length >
-                    0 ? (
-                      filteredExercises.map(
-                        (
-                          exercise
-                        ) => (
-                          <Pressable
-                            key={`${exercise.category}-${exercise.name}`}
-                            style={
-                              styles.searchResultRow
-                            }
-                            onPress={() =>
-                              selectLibraryExercise(
-                                exercise
-                              )
-                            }
-                          >
-                            <View
-                              style={
-                                styles.searchResultInfo
-                              }
-                            >
-                              <Text
-                                style={
-                                  styles.searchResultName
-                                }
-                              >
-                                {
-                                  exercise.name
-                                }
-                              </Text>
-
-                              <Text
-                                style={
-                                  styles.searchResultCategory
-                                }
-                              >
-                                {
-                                  exercise.category
-                                }
-                              </Text>
-                            </View>
-
-                            <Text
-                              style={
-                                styles.searchResultAction
-                              }
-                            >
-                              SELECT
-                            </Text>
-                          </Pressable>
-                        )
-                      )
-                    ) : (
-                      <View
-                        style={
-                          styles.noSearchResults
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.emptyTitle
-                          }
-                        >
-                          No exercises found
-                        </Text>
-
-                        <Text
-                          style={
-                            styles.secondaryText
-                          }
-                        >
-                          Try another search or add it as a custom exercise.
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                ) : (
-                  <View
-                    style={
-                      styles.searchHint
+                    value={
+                      customExerciseName
                     }
-                  >
-                    <Text
-                      style={
-                        styles.searchHintText
-                      }
-                    >
-                      Search by exercise name or muscle group.
-                    </Text>
-                  </View>
-                )}
-
-                <Pressable
-                  style={[
-                    styles.primaryButton,
-                    (!selectedExercise ||
-                      addingExercise) &&
-                      styles.disabledButton,
-                  ]}
-                  onPress={
-                    handleAddExercise
-                  }
-                  disabled={
-                    !selectedExercise ||
-                    addingExercise
-                  }
-                >
-                  {addingExercise ? (
-                    <ActivityIndicator
-                      color={
-                        colors.background
-                      }
-                    />
-                  ) : (
-                    <Text
-                      style={
-                        styles.primaryButtonText
-                      }
-                    >
-                      ADD EXERCISE
-                    </Text>
-                  )}
-                </Pressable>
-
-                <View style={styles.orRow}>
-                  <View style={styles.orLine} />
-
-                  <Text style={styles.orText}>
-                    OR
-                  </Text>
-
-                  <View style={styles.orLine} />
-                </View>
-
-                <Pressable
-                  style={
-                    styles.customExerciseButton
-                  }
-                  onPress={
-                    openCustomExerciseMode
-                  }
-                >
-                  <Text
-                    style={
-                      styles.customExerciseButtonText
+                    onChangeText={
+                      setCustomExerciseName
                     }
-                  >
-                    + CUSTOM EXERCISE
-                  </Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <View
-                  style={
-                    styles.customHeader
-                  }
-                >
-                  <View
-                    style={
-                      styles.customHeaderInfo
+                    placeholder="Enter exercise name"
+                    placeholderTextColor={
+                      colors.textSecondary
                     }
-                  >
-                    <Text style={styles.label}>
-                      CUSTOM EXERCISE
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.secondaryText
-                      }
-                    >
-                      Add an exercise that is not in the library.
-                    </Text>
-                  </View>
+                    autoCapitalize="words"
+                  />
 
                   <Pressable
+                    style={[
+                      styles.primaryButton,
+                      (customExerciseName.trim() ===
+                        '' ||
+                        addingExercise) &&
+                        styles.disabledButton,
+                    ]}
                     onPress={
-                      cancelCustomExerciseMode
+                      handleAddExercise
+                    }
+                    disabled={
+                      customExerciseName.trim() ===
+                        '' ||
+                      addingExercise
                     }
                   >
-                    <Text
-                      style={
-                        styles.cancelCustomText
-                      }
-                    >
-                      CANCEL
-                    </Text>
+                    {addingExercise ? (
+                      <ActivityIndicator
+                        color={
+                          colors.background
+                        }
+                      />
+                    ) : (
+                      <Text
+                        style={
+                          styles.primaryButtonText
+                        }
+                      >
+                        ADD CUSTOM EXERCISE
+                      </Text>
+                    )}
                   </Pressable>
-                </View>
-
-                <TextInput
-                  style={styles.input}
-                  value={
-                    customExerciseName
-                  }
-                  onChangeText={
-                    setCustomExerciseName
-                  }
-                  placeholder="Enter exercise name"
-                  placeholderTextColor={
-                    colors.textSecondary
-                  }
-                  autoCapitalize="words"
-                />
-
-                <Pressable
-                  style={[
-                    styles.primaryButton,
-                    (customExerciseName.trim() ===
-                      '' ||
-                      addingExercise) &&
-                      styles.disabledButton,
-                  ]}
-                  onPress={
-                    handleAddExercise
-                  }
-                  disabled={
-                    customExerciseName.trim() ===
-                      '' ||
-                    addingExercise
-                  }
-                >
-                  {addingExercise ? (
-                    <ActivityIndicator
-                      color={
-                        colors.background
-                      }
-                    />
-                  ) : (
-                    <Text
-                      style={
-                        styles.primaryButtonText
-                      }
-                    >
-                      ADD CUSTOM EXERCISE
-                    </Text>
-                  )}
-                </Pressable>
-              </>
-            )}
-          </AppCard>
+                </>
+              )}
+            </AppCard>
+          </View>
 
           {activeWorkout.exercises.length ===
           0 ? (
             <AppCard>
-              <Text style={styles.emptyTitle}>
+              <Text
+                style={
+                  styles.emptyTitle
+                }
+              >
                 No exercises yet
               </Text>
 
@@ -1707,7 +1856,9 @@ export default function WorkoutScreen() {
                 exercise,
                 index
               ) => (
-                <AppCard key={exercise.id}>
+                <AppCard
+                  key={exercise.id}
+                >
                   <View
                     style={
                       styles.exerciseHeader
@@ -1866,7 +2017,9 @@ export default function WorkoutScreen() {
                       {exercise.sets.map(
                         (set) => (
                           <SetRow
-                            key={set.id}
+                            key={
+                              set.id
+                            }
                             set={set}
                             deleting={
                               deletingSetId ===
@@ -1908,6 +2061,26 @@ export default function WorkoutScreen() {
                 </AppCard>
               )
             )
+          )}
+
+          {activeWorkout.exercises.length >
+            0 && (
+            <Pressable
+              style={
+                styles.addAnotherExerciseButton
+              }
+              onPress={
+                scrollToAddExercise
+              }
+            >
+              <Text
+                style={
+                  styles.addAnotherExerciseButtonText
+                }
+              >
+                + ADD ANOTHER EXERCISE
+              </Text>
+            </Pressable>
           )}
 
           <Pressable
@@ -1972,7 +2145,11 @@ export default function WorkoutScreen() {
         </>
       ) : (
         <>
-          <View style={styles.sectionHeader}>
+          <View
+            style={
+              styles.sectionHeader
+            }
+          >
             <View>
               <Text
                 style={
@@ -2007,7 +2184,9 @@ export default function WorkoutScreen() {
               }
             >
               <ActivityIndicator
-                color={colors.primary}
+                color={
+                  colors.primary
+                }
               />
             </View>
           ) : workoutTemplates.length ===
@@ -2045,7 +2224,9 @@ export default function WorkoutScreen() {
 
                 return (
                   <AppCard
-                    key={template.id}
+                    key={
+                      template.id
+                    }
                   >
                     <View
                       style={
@@ -2062,7 +2243,9 @@ export default function WorkoutScreen() {
                             styles.templateName
                           }
                         >
-                          {template.name}
+                          {
+                            template.name
+                          }
                         </Text>
 
                         <Text
@@ -2082,7 +2265,8 @@ export default function WorkoutScreen() {
                             ? 'exercise'
                             : 'exercises'}{' '}
                           • {totalSets}{' '}
-                          {totalSets === 1
+                          {totalSets ===
+                          1
                             ? 'set'
                             : 'sets'}
                         </Text>
@@ -2098,14 +2282,17 @@ export default function WorkoutScreen() {
                     </View>
 
                     {template.exercises
-                      .length > 0 && (
+                      .length >
+                      0 && (
                       <View
                         style={
                           styles.templateExerciseList
                         }
                       >
                         {template.exercises.map(
-                          (exercise) => (
+                          (
+                            exercise
+                          ) => (
                             <View
                               key={
                                 exercise.id
@@ -2228,7 +2415,11 @@ export default function WorkoutScreen() {
             )
           )}
 
-          <View style={styles.sectionHeader}>
+          <View
+            style={
+              styles.sectionHeader
+            }
+          >
             <View>
               <Text
                 style={
@@ -2249,7 +2440,11 @@ export default function WorkoutScreen() {
           </View>
 
           <AppCard>
-            <Text style={styles.cardTitle}>
+            <Text
+              style={
+                styles.cardTitle
+              }
+            >
               Start a Workout
             </Text>
 
@@ -2266,13 +2461,21 @@ export default function WorkoutScreen() {
                 styles.inputGroup
               }
             >
-              <Text style={styles.label}>
+              <Text
+                style={
+                  styles.label
+                }
+              >
                 WORKOUT NAME
               </Text>
 
               <TextInput
-                style={styles.input}
-                value={workoutName}
+                style={
+                  styles.input
+                }
+                value={
+                  workoutName
+                }
                 onChangeText={
                   setWorkoutName
                 }
@@ -2305,7 +2508,11 @@ export default function WorkoutScreen() {
 
       {!loading && (
         <>
-          <View style={styles.historyHeader}>
+          <View
+            style={
+              styles.historyHeader
+            }
+          >
             <Text
               style={
                 styles.sectionTitle
@@ -2330,7 +2537,9 @@ export default function WorkoutScreen() {
               }
             >
               <ActivityIndicator
-                color={colors.primary}
+                color={
+                  colors.primary
+                }
               />
             </View>
           ) : workoutHistory.length ===
@@ -2355,7 +2564,11 @@ export default function WorkoutScreen() {
           ) : (
             workoutHistory.map(
               (workout) => (
-                <AppCard key={workout.id}>
+                <AppCard
+                  key={
+                    workout.id
+                  }
+                >
                   <View
                     style={
                       styles.historyCardHeader
@@ -2371,7 +2584,9 @@ export default function WorkoutScreen() {
                           styles.historyName
                         }
                       >
-                        {workout.name}
+                        {
+                          workout.name
+                        }
                       </Text>
 
                       <Text
@@ -2433,7 +2648,9 @@ export default function WorkoutScreen() {
                           styles.historyStatValue
                         }
                       >
-                        {workout.setCount}
+                        {
+                          workout.setCount
+                        }
                       </Text>
 
                       <Text
@@ -2688,7 +2905,7 @@ const styles =
 
     statRow: {
       flexDirection: 'row',
-      gap: spacing.md,
+      gap: spacing.sm,
     },
 
     statItem: {
@@ -2707,6 +2924,10 @@ const styles =
       fontWeight: '700',
     },
 
+    completedStatValue: {
+      color: colors.primary,
+    },
+
     statLabel: {
       color:
         colors.textSecondary,
@@ -2714,6 +2935,43 @@ const styles =
         fontSize.small,
       marginTop:
         spacing.xs,
+      textAlign: 'center',
+    },
+
+    workoutProgressSection: {
+      gap: spacing.sm,
+    },
+
+    workoutProgressHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      gap: spacing.sm,
+    },
+
+    workoutProgressText: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '600',
+    },
+
+    workoutProgressTrack: {
+      width: '100%',
+      height: 8,
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+
+    workoutProgressFill: {
+      height: '100%',
+      backgroundColor:
+        colors.primary,
+      borderRadius: 999,
     },
 
     emptyTitle: {
@@ -3254,6 +3512,27 @@ const styles =
     },
 
     addSetButtonText: {
+      color: colors.primary,
+      fontSize:
+        fontSize.body,
+      fontWeight: '700',
+    },
+
+    addAnotherExerciseButton: {
+      width: '100%',
+      minHeight: 48,
+      borderColor:
+        colors.primary,
+      borderWidth: 1,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      paddingHorizontal:
+        spacing.md,
+    },
+
+    addAnotherExerciseButtonText: {
       color: colors.primary,
       fontSize:
         fontSize.body,
