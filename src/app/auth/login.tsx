@@ -4,7 +4,6 @@ import {
 } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -32,131 +31,205 @@ export default function LoginScreen() {
   const [loading, setLoading] =
     useState(false);
 
-  async function handleLogin() {
-    if (
-      !email.trim() ||
-      !password
-    ) {
-      Alert.alert(
-        'Missing information',
-        'Enter your email and password.'
-      );
+  const [loginError, setLoginError] =
+    useState('');
 
+  function clearError() {
+    if (loginError) {
+      setLoginError('');
+    }
+  }
+
+  async function handleLogin() {
+    setLoginError('');
+
+    const trimmedEmail =
+      email.trim();
+
+    if (!trimmedEmail) {
+      setLoginError(
+        'Enter your email address.'
+      );
+      return;
+    }
+
+    if (!password) {
+      setLoginError(
+        'Enter your password.'
+      );
       return;
     }
 
     setLoading(true);
 
-    const {
-      data: loginData,
-      error: loginError,
-    } =
-      await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-    if (loginError) {
-      setLoading(false);
-
-      Alert.alert(
-        'Login failed',
-        loginError.message
-      );
-
-      return;
-    }
-
-    const userId =
-      loginData.user?.id;
-
-    if (!userId) {
-      setLoading(false);
-
-      Alert.alert(
-        'Login failed',
-        'Apollo could not load your account.'
-      );
-
-      return;
-    }
-
-    const {
-      data: profileData,
-      error: profileError,
-    } = await supabase
-      .from('profiles')
-      .select(
-        'onboarding_completed'
-      )
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error(
-        'Error checking onboarding status:',
-        profileError
-      );
-
-      setLoading(false);
-
-      Alert.alert(
-        'Account error',
-        'Apollo could not load your profile.'
-      );
-
-      return;
-    }
-
-    if (!profileData) {
+    try {
       const {
-        error: insertError,
-      } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
+        data: loginData,
+        error: authError,
+      } =
+        await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
         });
 
-      if (insertError) {
+      if (authError) {
+        const normalizedMessage =
+          authError.message.toLowerCase();
+
+        if (
+          normalizedMessage.includes(
+            'invalid login credentials'
+          )
+        ) {
+          setLoginError(
+            'Incorrect email or password. Please try again.'
+          );
+        } else if (
+          normalizedMessage.includes(
+            'email not confirmed'
+          )
+        ) {
+          setLoginError(
+            'Please confirm your email address before signing in.'
+          );
+        } else {
+          setLoginError(
+            authError.message ||
+              'Unable to sign in. Please try again.'
+          );
+        }
+
+        return;
+      }
+
+      if (!loginData.user?.id) {
+        setLoginError(
+          'Apollo could not load your account. Please try again.'
+        );
+        return;
+      }
+
+      /*
+       * Refresh the newly-created session before Apollo
+       * begins loading authenticated application data.
+       *
+       * This gives the app one authoritative, current
+       * access token before FoodContext, ProgressContext,
+       * RecipeContext, etc. begin their Supabase queries.
+       */
+      const {
+        data: refreshedSession,
+        error: refreshError,
+      } =
+        await supabase.auth.refreshSession();
+
+      if (refreshError) {
         console.error(
-          'Error creating profile:',
-          insertError
+          'Error refreshing login session:',
+          refreshError
         );
 
-        setLoading(false);
+        await supabase.auth.signOut();
 
-        Alert.alert(
-          'Account error',
-          'Apollo could not create your profile.'
+        setLoginError(
+          'Apollo could not establish a valid session. Please sign in again.'
         );
 
         return;
       }
 
-      setLoading(false);
+      const userId =
+        refreshedSession.user?.id ??
+        loginData.user.id;
+
+      if (!userId) {
+        await supabase.auth.signOut();
+
+        setLoginError(
+          'Apollo could not load your account. Please try again.'
+        );
+
+        return;
+      }
+
+      const {
+        data: profileData,
+        error: profileError,
+      } = await supabase
+        .from('profiles')
+        .select(
+          'onboarding_completed'
+        )
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error(
+          'Error checking onboarding status:',
+          profileError
+        );
+
+        setLoginError(
+          'Apollo could not load your profile. Please try again.'
+        );
+
+        return;
+      }
+
+      if (!profileData) {
+        const {
+          error: insertError,
+        } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+          });
+
+        if (insertError) {
+          console.error(
+            'Error creating profile:',
+            insertError
+          );
+
+          setLoginError(
+            'Apollo could not create your profile. Please try again.'
+          );
+
+          return;
+        }
+
+        router.replace(
+          '/onboarding' as Href
+        );
+
+        return;
+      }
+
+      if (
+        profileData.onboarding_completed
+      ) {
+        router.replace(
+          '/(tabs)'
+        );
+
+        return;
+      }
 
       router.replace(
         '/onboarding' as Href
       );
-
-      return;
-    }
-
-    setLoading(false);
-
-    if (
-      profileData.onboarding_completed
-    ) {
-      router.replace(
-        '/(tabs)'
+    } catch (error) {
+      console.error(
+        'Unexpected login error:',
+        error
       );
 
-      return;
+      setLoginError(
+        'Something went wrong while signing in. Please try again.'
+      );
+    } finally {
+      setLoading(false);
     }
-
-    router.replace(
-      '/onboarding' as Href
-    );
   }
 
   return (
@@ -192,7 +265,12 @@ export default function LoginScreen() {
             </Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                loginError
+                  ? styles.inputError
+                  : null,
+              ]}
               placeholder="you@example.com"
               placeholderTextColor={
                 colors.textSecondary
@@ -200,10 +278,15 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
               value={email}
-              onChangeText={
-                setEmail
-              }
+              onChangeText={(value) => {
+                setEmail(value);
+                clearError();
+              }}
+              editable={!loading}
+              returnKeyType="next"
             />
           </View>
 
@@ -217,7 +300,12 @@ export default function LoginScreen() {
             </Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                loginError
+                  ? styles.inputError
+                  : null,
+              ]}
               placeholder="Enter password"
               placeholderTextColor={
                 colors.textSecondary
@@ -225,12 +313,34 @@ export default function LoginScreen() {
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="password"
+              textContentType="password"
               value={password}
-              onChangeText={
-                setPassword
+              onChangeText={(value) => {
+                setPassword(value);
+                clearError();
+              }}
+              editable={!loading}
+              returnKeyType="done"
+              onSubmitEditing={
+                handleLogin
               }
             />
           </View>
+
+          {loginError ? (
+            <View
+              style={
+                styles.errorContainer
+              }
+            >
+              <Text
+                style={styles.errorText}
+              >
+                {loginError}
+              </Text>
+            </View>
+          ) : null}
 
           <Pressable
             style={({
@@ -238,6 +348,7 @@ export default function LoginScreen() {
             }) => [
               styles.primaryButton,
               pressed &&
+                !loading &&
                 styles.buttonPressed,
               loading &&
                 styles.disabledButton,
@@ -262,6 +373,7 @@ export default function LoginScreen() {
                 '/auth/signup'
               )
             }
+            disabled={loading}
           >
             <Text
               style={styles.linkText}
@@ -339,6 +451,29 @@ const styles =
       fontSize:
         fontSize.body,
       padding: spacing.md,
+    },
+
+    inputError: {
+      borderColor:
+        colors.danger,
+    },
+
+    errorContainer: {
+      backgroundColor:
+        colors.surface,
+      borderColor:
+        colors.danger,
+      borderWidth: 1,
+      borderRadius:
+        borderRadius.md,
+      padding: spacing.md,
+    },
+
+    errorText: {
+      color: colors.danger,
+      fontSize:
+        fontSize.small,
+      lineHeight: 20,
     },
 
     primaryButton: {
