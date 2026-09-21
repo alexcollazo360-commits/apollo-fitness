@@ -40,6 +40,8 @@ import {
   type WorkoutSet,
 } from '../../context/WorkoutContext';
 
+import { useRun } from '../../context/RunContext';
+
 import { supabase } from '../../lib/supabase';
 
 type SetRowProps = {
@@ -318,6 +320,24 @@ export default function WorkoutScreen() {
     startWorkoutFromTemplate,
     deleteWorkoutTemplate,
   } = useWorkout();
+
+  const {
+    runHistory,
+    historyLoading: runHistoryLoading,
+    loadRunHistory,
+    deleteRun,
+  } = useRun();
+
+  const [
+    deletingRunId,
+    setDeletingRunId,
+  ] = useState<string | null>(
+    null
+  );
+
+  useEffect(() => {
+    loadRunHistory();
+  }, []);
 
   const [
     workoutName,
@@ -1217,6 +1237,145 @@ export default function WorkoutScreen() {
     router.push('/workout/run');
   }
 
+  function formatRunDate(
+    date: string
+  ) {
+    const parsedDate =
+      new Date(
+        `${date}T00:00:00`
+      );
+
+    return parsedDate.toLocaleDateString(
+      undefined,
+      {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }
+    );
+  }
+
+  function formatRunDistance(
+    distanceMeters: number
+  ) {
+    const miles =
+      distanceMeters / 1609.344;
+
+    return `${miles.toFixed(2)} mi`;
+  }
+
+  function formatRunDuration(
+    durationSeconds: number
+  ) {
+    const hours = Math.floor(
+      durationSeconds / 3600
+    );
+
+    const minutes = Math.floor(
+      (durationSeconds % 3600) / 60
+    );
+
+    const seconds =
+      durationSeconds % 60;
+
+    if (hours > 0) {
+      return [
+        hours,
+        String(minutes).padStart(2, '0'),
+        String(seconds).padStart(2, '0'),
+      ].join(':');
+    }
+
+    return [
+      minutes,
+      String(seconds).padStart(2, '0'),
+    ].join(':');
+  }
+
+  function formatRunPace(
+    paceSecondsPerMile: number | null
+  ) {
+    if (
+      paceSecondsPerMile === null ||
+      !Number.isFinite(
+        paceSecondsPerMile
+      ) ||
+      paceSecondsPerMile <= 0
+    ) {
+      return '--';
+    }
+
+    const roundedSeconds =
+      Math.round(
+        paceSecondsPerMile
+      );
+
+    const minutes =
+      Math.floor(
+        roundedSeconds / 60
+      );
+
+    const seconds =
+      roundedSeconds % 60;
+
+    return `${minutes}:${String(
+      seconds
+    ).padStart(2, '0')} /mi`;
+  }
+
+  async function removeRun(
+    runId: string
+  ) {
+    setDeletingRunId(runId);
+
+    const success =
+      await deleteRun(runId);
+
+    setDeletingRunId(null);
+
+    if (!success) {
+      showMessage(
+        'Unable to delete run',
+        'There was a problem deleting this run.'
+      );
+    }
+  }
+
+  function confirmDeleteRun(
+    runId: string
+  ) {
+    const message =
+      'Delete this run? Its saved distance, time, pace, calories, and route will be permanently deleted.';
+
+    if (Platform.OS === 'web') {
+      const confirmed =
+        window.confirm(message);
+
+      if (confirmed) {
+        removeRun(runId);
+      }
+
+      return;
+    }
+
+    Alert.alert(
+      'Delete Run',
+      message,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () =>
+            removeRun(runId),
+        },
+      ]
+    );
+  }
+
   return (
     <ScrollView
       ref={scrollViewRef}
@@ -1276,6 +1435,245 @@ export default function WorkoutScreen() {
           </View>
         </View>
       </Pressable>
+
+      <View
+        style={
+          styles.sectionHeader
+        }
+      >
+        <View>
+          <Text
+            style={
+              styles.sectionTitle
+            }
+          >
+            Recent Runs
+          </Text>
+
+          <Text
+            style={
+              styles.sectionSubtitle
+            }
+          >
+            Your saved outdoor runs.
+          </Text>
+        </View>
+
+        <Text
+          style={
+            styles.historyCount
+          }
+        >
+          {runHistory.length}
+        </Text>
+      </View>
+
+      {runHistoryLoading ? (
+        <View
+          style={
+            styles.historyLoading
+          }
+        >
+          <ActivityIndicator
+            color={
+              colors.primary
+            }
+          />
+        </View>
+      ) : runHistory.length ===
+        0 ? (
+        <AppCard>
+          <Text
+            style={
+              styles.emptyTitle
+            }
+          >
+            No saved runs
+          </Text>
+
+          <Text
+            style={
+              styles.secondaryText
+            }
+          >
+            Finish an outdoor run and it will appear here.
+          </Text>
+        </AppCard>
+      ) : (
+        runHistory
+          .slice(0, 5)
+          .map((run) => (
+            <AppCard
+              key={run.id}
+            >
+              <View
+                style={
+                  styles.runHistoryHeader
+                }
+              >
+                <View
+                  style={
+                    styles.historyInfo
+                  }
+                >
+                  <Text
+                    style={
+                      styles.historyName
+                    }
+                  >
+                    Outdoor Run
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.historyDate
+                    }
+                  >
+                    {formatRunDate(
+                      run.runDate
+                    )}
+                  </Text>
+                </View>
+
+                <Text
+                  style={
+                    styles.completedText
+                  }
+                >
+                  COMPLETE
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.runHistoryStats
+                }
+              >
+                <View
+                  style={
+                    styles.runHistoryStat
+                  }
+                >
+                  <Text
+                    style={
+                      styles.runHistoryStatValue
+                    }
+                  >
+                    {formatRunDistance(
+                      run.distanceMeters
+                    )}
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.runHistoryStatLabel
+                    }
+                  >
+                    Distance
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.runHistoryStat
+                  }
+                >
+                  <Text
+                    style={
+                      styles.runHistoryStatValue
+                    }
+                  >
+                    {formatRunDuration(
+                      run.durationSeconds
+                    )}
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.runHistoryStatLabel
+                    }
+                  >
+                    Time
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.runHistoryStat
+                  }
+                >
+                  <Text
+                    style={
+                      styles.runHistoryStatValue
+                    }
+                  >
+                    {formatRunPace(
+                      run.averagePaceSecondsPerMile
+                    )}
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.runHistoryStatLabel
+                    }
+                  >
+                    Avg Pace
+                  </Text>
+                </View>
+              </View>
+
+              <View
+                style={
+                  styles.runHistoryFooter
+                }
+              >
+                <Text
+                  style={
+                    styles.runCaloriesText
+                  }
+                >
+                  {run.caloriesBurned} kcal
+                </Text>
+
+                <Pressable
+                  style={[
+                    styles.runDeleteButton,
+                    deletingRunId ===
+                      run.id &&
+                      styles.disabledButton,
+                  ]}
+                  disabled={
+                    deletingRunId ===
+                    run.id
+                  }
+                  onPress={() =>
+                    confirmDeleteRun(
+                      run.id
+                    )
+                  }
+                >
+                  {deletingRunId ===
+                  run.id ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={
+                        colors.danger
+                      }
+                    />
+                  ) : (
+                    <Text
+                      style={
+                        styles.runDeleteButtonText
+                      }
+                    >
+                      DELETE
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            </AppCard>
+          ))
+      )}
 
       {loading ? (
         <View
@@ -3835,6 +4233,89 @@ const styles =
       color: colors.primary,
       fontSize: 26,
       fontWeight: '400',
+    },
+
+    runHistoryHeader: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems:
+        'flex-start',
+      gap: spacing.md,
+    },
+
+    runHistoryStats: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+
+    runHistoryStat: {
+      flex: 1,
+      minWidth: 0,
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius: 10,
+      paddingVertical:
+        spacing.md,
+      paddingHorizontal:
+        spacing.sm,
+      alignItems: 'center',
+    },
+
+    runHistoryStatValue: {
+      color: colors.text,
+      fontSize:
+        fontSize.subtitle,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+
+    runHistoryStatLabel: {
+      color:
+        colors.textSecondary,
+      fontSize: 10,
+      marginTop:
+        spacing.xs,
+      textAlign: 'center',
+    },
+
+    runHistoryFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      gap: spacing.md,
+      marginTop:
+        spacing.xs,
+    },
+
+    runCaloriesText: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '600',
+    },
+
+    runDeleteButton: {
+      minWidth: 80,
+      minHeight: 40,
+      borderRadius: 10,
+      borderColor:
+        colors.danger,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      paddingHorizontal:
+        spacing.md,
+    },
+
+    runDeleteButtonText: {
+      color: colors.danger,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
     },
 
     historyDeleteAction: {
