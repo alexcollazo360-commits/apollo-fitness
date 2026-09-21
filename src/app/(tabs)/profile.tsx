@@ -7,6 +7,8 @@ import {
   View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import AppCard from '../../components/AppCard';
 import {
   colors,
@@ -16,6 +18,8 @@ import {
 import { useProfile } from '../../context/ProfileContext';
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
+
   const router = useRouter();
   const { profile } = useProfile();
 
@@ -88,9 +92,19 @@ export default function ProfileScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={
-        styles.container
-      }
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop:
+            insets.top +
+            spacing.md,
+          paddingBottom:
+            Math.max(
+              insets.bottom,
+              10
+            ) + 100,
+        },
+      ]}
     >
       <View style={styles.header}>
         <Text

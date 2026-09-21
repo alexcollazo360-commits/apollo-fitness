@@ -15,6 +15,8 @@ import {
   View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import AppCard from '../../components/AppCard';
 
 import {
@@ -59,6 +61,8 @@ function roundNutrition(
 }
 
 export default function FoodScreen() {
+  const insets = useSafeAreaInsets();
+
   const router = useRouter();
 
   const {
@@ -691,9 +695,14 @@ export default function FoodScreen() {
     <>
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={
-          styles.container
-        }
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop:
+              insets.top +
+              spacing.md,
+          },
+        ]}
       >
         <View
           style={styles.header}

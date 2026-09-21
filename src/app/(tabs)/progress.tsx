@@ -12,6 +12,8 @@ import {
   View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import AppCard from '../../components/AppCard';
 import WeightTrendChart from '../../components/WeightTrendChart';
 import WorkoutActivityChart from '../../components/WorkoutActivityChart';
@@ -292,6 +294,7 @@ function getGoalEtaText(
 }
 
 export default function ProgressScreen() {
+  const insets = useSafeAreaInsets();
   const {
     weightEntries,
     loading,
@@ -974,9 +977,19 @@ export default function ProgressScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={
-        styles.content
-      }
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop:
+            insets.top +
+            spacing.md,
+          paddingBottom:
+            Math.max(
+              insets.bottom,
+              10
+            ) + 100,
+        },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
       <View

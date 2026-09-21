@@ -1,6 +1,6 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-
 import {
   ActivityIndicator,
   Alert,
@@ -14,16 +14,15 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppCard from '../../components/AppCard';
-
 import {
   borderRadius,
   colors,
   fontSize,
   spacing,
 } from '../../constants/theme';
-
 import { useFood } from '../../context/FoodContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useProgress } from '../../context/ProgressContext';
@@ -89,6 +88,8 @@ function getDefaultMeal(): Meal {
 }
 
 export default function TodayScreen() {
+  const insets = useSafeAreaInsets();
+
   const {
     foodEntries,
     addFoodEntry,
@@ -111,6 +112,11 @@ export default function TodayScreen() {
     historyLoading,
     startWorkout,
   } = useWorkout();
+
+  const [
+    fabOpen,
+    setFabOpen,
+  ] = useState(false);
 
   const [
     foodModalVisible,
@@ -409,6 +415,8 @@ export default function TodayScreen() {
   function openFoodModal(
     meal?: Meal
   ) {
+    setFabOpen(false);
+
     resetFoodForm();
 
     setSelectedMeal(
@@ -486,6 +494,8 @@ export default function TodayScreen() {
   }
 
   function openWorkoutModal() {
+    setFabOpen(false);
+
     setWorkoutName('');
 
     setWorkoutModalVisible(
@@ -554,6 +564,8 @@ export default function TodayScreen() {
   }
 
   function openWeightModal() {
+    setFabOpen(false);
+
     setQuickWeight('');
 
     setWeightModalVisible(
@@ -611,15 +623,31 @@ export default function TodayScreen() {
   }
 
   return (
-    <>
+    <View
+      style={
+        styles.root
+      }
+    >
       <ScrollView
-        style={styles.screen}
-        contentContainerStyle={
-          styles.container
+        style={
+          styles.screen
         }
+        showsVerticalScrollIndicator={
+          false
+        }
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop:
+              insets.top +
+              spacing.md,
+          },
+        ]}
       >
         <View
-          style={styles.header}
+          style={
+            styles.header
+          }
         >
           <Text
             style={
@@ -636,106 +664,6 @@ export default function TodayScreen() {
           >
             {formattedDate}
           </Text>
-        </View>
-
-        <View
-          style={
-            styles.quickActions
-          }
-        >
-          <Pressable
-            onPress={() =>
-              openFoodModal()
-            }
-            style={({
-              pressed,
-            }) => [
-              styles.quickActionButton,
-
-              pressed &&
-                styles.quickActionPressed,
-            ]}
-          >
-            <Text
-              style={
-                styles.quickActionLabel
-              }
-            >
-              ADD FOOD
-            </Text>
-
-            <Text
-              style={
-                styles.quickActionText
-              }
-            >
-              Log a meal
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={
-              openWorkoutModal
-            }
-            style={({
-              pressed,
-            }) => [
-              styles.quickActionButton,
-
-              pressed &&
-                styles.quickActionPressed,
-            ]}
-          >
-            <Text
-              style={
-                styles.quickActionLabel
-              }
-            >
-              {activeWorkout
-                ? 'RESUME'
-                : 'WORKOUT'}
-            </Text>
-
-            <Text
-              style={
-                styles.quickActionText
-              }
-            >
-              {activeWorkout
-                ? 'Continue training'
-                : 'Start training'}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={
-              openWeightModal
-            }
-            style={({
-              pressed,
-            }) => [
-              styles.quickActionButton,
-
-              pressed &&
-                styles.quickActionPressed,
-            ]}
-          >
-            <Text
-              style={
-                styles.quickActionLabel
-              }
-            >
-              LOG WEIGHT
-            </Text>
-
-            <Text
-              style={
-                styles.quickActionText
-              }
-            >
-              Add today's weight
-            </Text>
-          </Pressable>
         </View>
 
         <AppCard>
@@ -1517,6 +1445,205 @@ export default function TodayScreen() {
         </AppCard>
       </ScrollView>
 
+      {fabOpen && (
+        <Pressable
+          style={
+            styles.fabBackdrop
+          }
+          onPress={() =>
+            setFabOpen(false)
+          }
+        />
+      )}
+
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.fabContainer,
+          {
+            bottom:
+              Math.max(
+                insets.bottom,
+                10
+              ) + 78,
+          },
+        ]}
+      >
+        {fabOpen && (
+          <View
+            style={
+              styles.fabMenu
+            }
+          >
+            <Pressable
+              onPress={() =>
+                openFoodModal()
+              }
+              style={({
+                pressed,
+              }) => [
+                styles.fabAction,
+
+                pressed &&
+                  styles.fabActionPressed,
+              ]}
+            >
+              <View
+                style={
+                  styles.fabActionLabel
+                }
+              >
+                <Text
+                  style={
+                    styles.fabActionText
+                  }
+                >
+                  Add Food
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.fabActionIcon
+                }
+              >
+                <Ionicons
+                  name="restaurant-outline"
+                  size={20}
+                  color={
+                    colors.text
+                  }
+                />
+              </View>
+            </Pressable>
+
+            <Pressable
+              onPress={
+                openWorkoutModal
+              }
+              style={({
+                pressed,
+              }) => [
+                styles.fabAction,
+
+                pressed &&
+                  styles.fabActionPressed,
+              ]}
+            >
+              <View
+                style={
+                  styles.fabActionLabel
+                }
+              >
+                <Text
+                  style={
+                    styles.fabActionText
+                  }
+                >
+                  {activeWorkout
+                    ? 'Resume Workout'
+                    : 'Start Workout'}
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.fabActionIcon
+                }
+              >
+                <Ionicons
+                  name="barbell-outline"
+                  size={21}
+                  color={
+                    colors.text
+                  }
+                />
+              </View>
+            </Pressable>
+
+            <Pressable
+              onPress={
+                openWeightModal
+              }
+              style={({
+                pressed,
+              }) => [
+                styles.fabAction,
+
+                pressed &&
+                  styles.fabActionPressed,
+              ]}
+            >
+              <View
+                style={
+                  styles.fabActionLabel
+                }
+              >
+                <Text
+                  style={
+                    styles.fabActionText
+                  }
+                >
+                  Log Weight
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.fabActionIcon
+                }
+              >
+                <Ionicons
+                  name="scale-outline"
+                  size={21}
+                  color={
+                    colors.text
+                  }
+                />
+              </View>
+            </Pressable>
+          </View>
+        )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            fabOpen
+              ? 'Close quick actions'
+              : 'Open quick actions'
+          }
+          onPress={() =>
+            setFabOpen(
+              (current) =>
+                !current
+            )
+          }
+          style={({
+            pressed,
+          }) => [
+            styles.fabButton,
+
+            fabOpen &&
+              styles.fabButtonOpen,
+
+            pressed &&
+              styles.fabButtonPressed,
+          ]}
+        >
+          <Ionicons
+            name={
+              fabOpen
+                ? 'close'
+                : 'add'
+            }
+            size={30}
+            color={
+              colors.background
+            }
+          />
+        </Pressable>
+      </View>
+
       <Modal
         visible={
           foodModalVisible
@@ -2296,12 +2423,18 @@ export default function TodayScreen() {
           </View>
         </View>
       </Modal>
-    </>
+    </View>
   );
 }
 
 const styles =
   StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor:
+        colors.background,
+    },
+
     screen: {
       flex: 1,
       backgroundColor:
@@ -2309,9 +2442,9 @@ const styles =
     },
 
     container: {
-      padding: spacing.lg,
-      paddingBottom:
-        spacing.xxl,
+      paddingHorizontal:
+        spacing.lg,
+      paddingBottom: 180,
       gap: spacing.md,
     },
 
@@ -2332,50 +2465,6 @@ const styles =
         colors.textSecondary,
       fontSize:
         fontSize.body,
-      marginTop:
-        spacing.xs,
-    },
-
-    quickActions: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
-
-    quickActionButton: {
-      flex: 1,
-      minHeight: 82,
-      backgroundColor:
-        colors.surface,
-      borderColor:
-        colors.border,
-      borderWidth: 1,
-      borderRadius:
-        borderRadius.lg,
-      padding: spacing.md,
-      justifyContent:
-        'center',
-    },
-
-    quickActionPressed: {
-      backgroundColor:
-        colors.surfaceSecondary,
-      opacity: 0.85,
-    },
-
-    quickActionLabel: {
-      color:
-        colors.primary,
-      fontSize:
-        fontSize.small,
-      fontWeight: '700',
-      letterSpacing: 1,
-    },
-
-    quickActionText: {
-      color: colors.text,
-      fontSize:
-        fontSize.small,
-      fontWeight: '600',
       marginTop:
         spacing.xs,
     },
@@ -2762,6 +2851,136 @@ const styles =
         colors.textSecondary,
       fontSize:
         fontSize.body,
+    },
+
+    fabBackdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor:
+        'rgba(0, 0, 0, 0.18)',
+    },
+
+    fabContainer: {
+      position: 'absolute',
+      right: spacing.lg,
+      alignItems:
+        'flex-end',
+      gap: spacing.sm,
+    },
+
+    fabMenu: {
+      alignItems:
+        'flex-end',
+      gap: spacing.sm,
+      marginBottom:
+        spacing.xs,
+    },
+
+    fabAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'flex-end',
+      gap: spacing.sm,
+    },
+
+    fabActionPressed: {
+      opacity: 0.72,
+    },
+
+    fabActionLabel: {
+      minHeight: 42,
+      justifyContent:
+        'center',
+      paddingHorizontal:
+        spacing.md,
+      backgroundColor:
+        colors.surface,
+      borderWidth: 1,
+      borderColor:
+        colors.border,
+      borderRadius: 21,
+
+      shadowColor:
+        '#000000',
+      shadowOffset: {
+        width: 0,
+        height: 3,
+      },
+      shadowOpacity: 0.24,
+      shadowRadius: 8,
+
+      elevation: 8,
+    },
+
+    fabActionText: {
+      color: colors.text,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+    },
+
+    fabActionIcon: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      backgroundColor:
+        colors.surface,
+      borderWidth: 1,
+      borderColor:
+        colors.border,
+
+      shadowColor:
+        '#000000',
+      shadowOffset: {
+        width: 0,
+        height: 3,
+      },
+      shadowOpacity: 0.24,
+      shadowRadius: 8,
+
+      elevation: 8,
+    },
+
+    fabButton: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      backgroundColor:
+        colors.primary,
+
+      shadowColor:
+        '#000000',
+      shadowOffset: {
+        width: 0,
+        height: 5,
+      },
+      shadowOpacity: 0.32,
+      shadowRadius: 10,
+
+      elevation: 12,
+    },
+
+    fabButtonOpen: {
+      transform: [
+        {
+          rotate: '0deg',
+        },
+      ],
+    },
+
+    fabButtonPressed: {
+      opacity: 0.82,
+      transform: [
+        {
+          scale: 0.96,
+        },
+      ],
     },
 
     modalOverlay: {

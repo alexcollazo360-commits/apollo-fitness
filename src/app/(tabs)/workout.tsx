@@ -18,6 +18,8 @@ import {
   View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import AppCard from '../../components/AppCard';
 import ExercisePersonalRecord from '../../components/ExercisePersonalRecord';
 import PreviousExercisePerformance from '../../components/PreviousExercisePerformance';
@@ -277,6 +279,8 @@ function SetRow({
 }
 
 export default function WorkoutScreen() {
+  const insets = useSafeAreaInsets();
+
   const router = useRouter();
 
   const scrollViewRef =
@@ -1209,13 +1213,27 @@ export default function WorkoutScreen() {
     });
   }
 
+  function openRunTracker() {
+    router.push('/workout/run');
+  }
+
   return (
     <ScrollView
       ref={scrollViewRef}
       style={styles.screen}
-      contentContainerStyle={
-        styles.container
-      }
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop:
+            insets.top +
+            spacing.md,
+          paddingBottom:
+            Math.max(
+              insets.bottom,
+              10
+            ) + 100,
+        },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
@@ -1227,6 +1245,37 @@ export default function WorkoutScreen() {
           Log your training sessions.
         </Text>
       </View>
+
+      <Pressable
+        style={styles.runCard}
+        onPress={openRunTracker}
+      >
+        <View style={styles.runCardContent}>
+          <View style={styles.runCardInfo}>
+            <Text style={styles.runEyebrow}>
+              RUNNING
+            </Text>
+
+            <Text style={styles.runTitle}>
+              Outdoor Run
+            </Text>
+
+            <Text style={styles.runDescription}>
+              Track distance, time, pace, and your route.
+            </Text>
+          </View>
+
+          <View style={styles.runAction}>
+            <Text style={styles.runActionText}>
+              START
+            </Text>
+
+            <Text style={styles.runChevron}>
+              ›
+            </Text>
+          </View>
+        </View>
+      </Pressable>
 
       {loading ? (
         <View
@@ -3719,6 +3768,73 @@ const styles =
       color: colors.text,
       fontSize: 11,
       fontWeight: '700',
+    },
+
+    runCard: {
+      backgroundColor:
+        colors.surface,
+      borderWidth: 1,
+      borderColor:
+        colors.primary,
+      borderRadius: 16,
+      padding: spacing.lg,
+    },
+
+    runCardContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      gap: spacing.md,
+    },
+
+    runCardInfo: {
+      flex: 1,
+    },
+
+    runEyebrow: {
+      color: colors.primary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 1,
+      marginBottom:
+        spacing.xs,
+    },
+
+    runTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.title,
+      fontWeight: '700',
+    },
+
+    runDescription: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.small,
+      marginTop:
+        spacing.xs,
+    },
+
+    runAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+
+    runActionText: {
+      color: colors.primary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+    },
+
+    runChevron: {
+      color: colors.primary,
+      fontSize: 26,
+      fontWeight: '400',
     },
 
     historyDeleteAction: {
