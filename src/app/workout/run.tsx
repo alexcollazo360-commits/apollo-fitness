@@ -19,6 +19,8 @@ import {
     spacing,
 } from '../../constants/theme';
 
+import { useRun } from '../../context/RunContext';
+
 type RunStatus =
   | 'ready'
   | 'running'
@@ -67,6 +69,22 @@ type RoutePoint = {
 export default function RunTrackerScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const {
+    saveRun,
+    savingRun,
+  } = useRun();
+
+  const [
+    saveError,
+    setSaveError,
+  ] = useState<string | null>(null);
+
+  const runStartedAt =
+    useRef<string | null>(null);
+
+  const runSaved =
+    useRef(false);
 
   const [runStatus, setRunStatus] =
     useState<RunStatus>('ready');
@@ -538,6 +556,10 @@ export default function RunTrackerScreen() {
     setDistanceMeters(0);
     setElapsedSeconds(0);
     setCurrentSpeedMps(null);
+    setSaveError(null);
+    runSaved.current = false;
+    runStartedAt.current =
+      new Date().toISOString();
     setRunStatus('running');
   }
 
@@ -550,12 +572,75 @@ export default function RunTrackerScreen() {
     setRunStatus('running');
   }
 
-  function handleFinish() {
+  async function handleFinish() {
+    if (
+      savingRun ||
+      runSaved.current
+    ) {
+      return;
+    }
+
     locationSubscription.current?.remove();
     locationSubscription.current =
       null;
+
     setCurrentSpeedMps(null);
+    setSaveError(null);
+
+    const completedAt =
+      new Date().toISOString();
+
+    const startedAt =
+      runStartedAt.current ??
+      new Date(
+        Date.now() -
+          elapsedSeconds * 1000
+      ).toISOString();
+
+    const averagePaceSecondsPerMile =
+      distanceMiles >= 0.02 &&
+      elapsedSeconds > 0
+        ? elapsedSeconds /
+          distanceMiles
+        : null;
+
+    const savedRun =
+      await saveRun({
+        startedAt,
+        completedAt,
+        durationSeconds:
+          elapsedSeconds,
+        distanceMeters,
+        averagePaceSecondsPerMile,
+        caloriesBurned,
+        routePoints:
+          routePoints.map(
+            (point) => ({
+              latitude:
+                point.latitude,
+              longitude:
+                point.longitude,
+            })
+          ),
+      });
+
+    if (!savedRun) {
+      setSaveError(
+        'Apollo could not save this run. Check your connection and try Finish again.'
+      );
+
+      setGpsStatus(
+        gpsReady
+          ? 'GPS READY'
+          : 'GPS NOT READY'
+      );
+
+      return;
+    }
+
+    runSaved.current = true;
     setRunStatus('finished');
+
     setGpsStatus(
       gpsReady
         ? 'GPS READY'
@@ -568,6 +653,9 @@ export default function RunTrackerScreen() {
     locationSubscription.current =
       null;
     lastCoordinate.current = null;
+    runStartedAt.current = null;
+    runSaved.current = false;
+    setSaveError(null);
     setElapsedSeconds(0);
     setDistanceMeters(0);
     setCurrentSpeedMps(null);
@@ -1076,9 +1164,13 @@ export default function RunTrackerScreen() {
                 onPress={
                   handleFinish
                 }
+                disabled={savingRun}
                 style={({ pressed }) => [
                   styles.finishButton,
+                  savingRun &&
+                    styles.buttonDisabled,
                   pressed &&
+                    !savingRun &&
                     styles.pressed,
                 ]}
               >
@@ -1095,7 +1187,9 @@ export default function RunTrackerScreen() {
                     styles.finishButtonText
                   }
                 >
-                  FINISH
+                  {savingRun
+                    ? 'SAVING...'
+                    : 'FINISH'}
                 </Text>
               </Pressable>
             </View>
@@ -1139,9 +1233,13 @@ export default function RunTrackerScreen() {
                 onPress={
                   handleFinish
                 }
+                disabled={savingRun}
                 style={({ pressed }) => [
                   styles.finishButton,
+                  savingRun &&
+                    styles.buttonDisabled,
                   pressed &&
+                    !savingRun &&
                     styles.pressed,
                 ]}
               >
@@ -1158,7 +1256,9 @@ export default function RunTrackerScreen() {
                     styles.finishButtonText
                   }
                 >
-                  FINISH
+                  {savingRun
+                    ? 'SAVING...'
+                    : 'FINISH'}
                 </Text>
               </Pressable>
             </View>
@@ -1233,6 +1333,16 @@ export default function RunTrackerScreen() {
                 </Text>
               </Pressable>
             </View>
+          ) : null}
+
+          {saveError ? (
+            <Text
+              style={
+                styles.saveError
+              }
+            >
+              {saveError}
+            </Text>
           ) : null}
 
           {hasStarted &&
@@ -1708,6 +1818,18 @@ const styles =
       fontSize:
         fontSize.small,
       textAlign: 'center',
+    },
+
+    saveError: {
+      color: colors.danger,
+      fontSize:
+        fontSize.small,
+      lineHeight: 18,
+      textAlign: 'center',
+    },
+
+    buttonDisabled: {
+      opacity: 0.55,
     },
 
     finishedSection: {

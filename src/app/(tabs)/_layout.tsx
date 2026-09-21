@@ -1,8 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type {
-  BottomTabBarProps,
-} from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
+import type { ComponentProps } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -40,11 +38,20 @@ const TAB_ICONS = {
 type TabRouteName =
   keyof typeof TAB_ICONS;
 
+type ApolloTabBarProps =
+  Parameters<
+    NonNullable<
+      ComponentProps<
+        typeof Tabs
+      >['tabBar']
+    >
+  >[0];
+
 function ApolloTabBar({
   state,
   descriptors,
   navigation,
-}: BottomTabBarProps) {
+}: ApolloTabBarProps) {
   const insets =
     useSafeAreaInsets();
 

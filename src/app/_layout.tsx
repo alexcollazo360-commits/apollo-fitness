@@ -28,6 +28,7 @@ import {
 import { FoodProvider } from '../context/FoodContext';
 import { ProgressProvider } from '../context/ProgressContext';
 import { RecipeProvider } from '../context/RecipeContext';
+import { RunProvider } from '../context/RunContext';
 import { WorkoutProvider } from '../context/WorkoutContext';
 
 import { supabase } from '../lib/supabase';
@@ -200,79 +201,88 @@ function AppNavigator() {
     <RecipeProvider>
       <FoodProvider>
         <WorkoutProvider>
-          <ProgressProvider>
-            <Stack>
-              <Stack.Screen
-                name="index"
-                options={{
-                  headerShown: false,
-                }}
-              />
+          <RunProvider>
+            <ProgressProvider>
+              <Stack>
+                <Stack.Screen
+                  name="index"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-              <Stack.Screen
-                name="auth"
-                options={{
-                  headerShown: false,
-                }}
-              />
+                <Stack.Screen
+                  name="auth"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-              <Stack.Screen
-                name="onboarding"
-                options={{
-                  headerShown: false,
-                }}
-              />
+                <Stack.Screen
+                  name="onboarding"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-              <Stack.Screen
-                name="(tabs)"
-                options={{
-                  headerShown: false,
-                }}
-              />
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-              <Stack.Screen
-                name="food/add"
-                options={{
-                  headerShown: false,
-                }}
-              />
+                <Stack.Screen
+                  name="food/add"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-              <Stack.Screen
-                name="profile/nutrition"
-                options={{
-                  headerShown: false,
-                }}
-              />
+                <Stack.Screen
+                  name="profile/nutrition"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-              <Stack.Screen
-                name="profile/edit"
-                options={{
-                  headerShown: false,
-                }}
-              />
+                <Stack.Screen
+                  name="profile/edit"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-              <Stack.Screen
-                name="profile/goals"
-                options={{
-                  headerShown: false,
-                }}
-              />
+                <Stack.Screen
+                  name="profile/goals"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-              <Stack.Screen
-                name="profile/account"
-                options={{
-                  headerShown: false,
-                }}
-              />
+                <Stack.Screen
+                  name="profile/account"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-              <Stack.Screen
-                name="workout/details"
-                options={{
-                  headerShown: false,
-                }}
-              />
-            </Stack>
-          </ProgressProvider>
+                <Stack.Screen
+                  name="workout/details"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+
+                <Stack.Screen
+                  name="workout/run"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+              </Stack>
+            </ProgressProvider>
+          </RunProvider>
         </WorkoutProvider>
       </FoodProvider>
     </RecipeProvider>
