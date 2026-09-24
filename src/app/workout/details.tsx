@@ -1,41 +1,68 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  useLocalSearchParams,
+  useRouter,
+} from 'expo-router';
+
+import {
+  useEffect,
+  useState,
+} from 'react';
+
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
-import AppCard from '../../components/AppCard';
 import {
-    colors,
-    fontSize,
-    spacing,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
+import AppCard from '../../components/AppCard';
+
+import {
+  colors,
+  fontSize,
+  spacing,
 } from '../../constants/theme';
+
 import type {
-    Workout,
-    WorkoutExercise,
+  Workout,
+  WorkoutExercise,
 } from '../../context/WorkoutContext';
+
 import { supabase } from '../../lib/supabase';
 
 export default function WorkoutDetailsScreen() {
   const router = useRouter();
 
-  const params = useLocalSearchParams<{
-    workoutId?: string;
-  }>();
+  const insets =
+    useSafeAreaInsets();
 
-  const [workout, setWorkout] =
-    useState<Workout | null>(null);
+  const params =
+    useLocalSearchParams<{
+      workoutId?: string;
+    }>();
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    workout,
+    setWorkout,
+  ] =
+    useState<Workout | null>(
+      null
+    );
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
   const workoutId =
-    typeof params.workoutId === 'string'
+    typeof params.workoutId ===
+    'string'
       ? params.workoutId
       : null;
 
@@ -48,13 +75,15 @@ export default function WorkoutDetailsScreen() {
 
     if (!workoutId) {
       setLoading(false);
+
       return;
     }
 
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser();
+    } =
+      await supabase.auth.getUser();
 
     if (userError || !user) {
       console.error(
@@ -63,6 +92,7 @@ export default function WorkoutDetailsScreen() {
       );
 
       setLoading(false);
+
       return;
     }
 
@@ -73,7 +103,10 @@ export default function WorkoutDetailsScreen() {
       .from('workouts')
       .select('*')
       .eq('id', workoutId)
-      .eq('user_id', user.id)
+      .eq(
+        'user_id',
+        user.id
+      )
       .single();
 
     if (workoutError) {
@@ -83,6 +116,7 @@ export default function WorkoutDetailsScreen() {
       );
 
       setLoading(false);
+
       return;
     }
 
@@ -90,12 +124,20 @@ export default function WorkoutDetailsScreen() {
       data: exerciseData,
       error: exerciseError,
     } = await supabase
-      .from('workout_exercises')
+      .from(
+        'workout_exercises'
+      )
       .select('*')
-      .eq('workout_id', workoutId)
-      .order('exercise_order', {
-        ascending: true,
-      });
+      .eq(
+        'workout_id',
+        workoutId
+      )
+      .order(
+        'exercise_order',
+        {
+          ascending: true,
+        }
+      );
 
     if (exerciseError) {
       console.error(
@@ -104,12 +146,17 @@ export default function WorkoutDetailsScreen() {
       );
 
       setLoading(false);
+
       return;
     }
 
-    const exercises: WorkoutExercise[] = [];
+    const exercises:
+      WorkoutExercise[] = [];
 
-    for (const exercise of exerciseData ?? []) {
+    for (
+      const exercise of
+        exerciseData ?? []
+    ) {
       const {
         data: setData,
         error: setError,
@@ -120,9 +167,12 @@ export default function WorkoutDetailsScreen() {
           'workout_exercise_id',
           exercise.id
         )
-        .order('set_number', {
-          ascending: true,
-        });
+        .order(
+          'set_number',
+          {
+            ascending: true,
+          }
+        );
 
       if (setError) {
         console.error(
@@ -131,6 +181,7 @@ export default function WorkoutDetailsScreen() {
         );
 
         setLoading(false);
+
         return;
       }
 
@@ -143,21 +194,29 @@ export default function WorkoutDetailsScreen() {
         exerciseOrder:
           exercise.exercise_order,
 
-        sets: (setData ?? []).map((set) => ({
+        sets: (
+          setData ?? []
+        ).map((set) => ({
           id: set.id,
 
           setNumber:
             set.set_number,
 
           weight:
-            set.weight === null
+            set.weight ===
+            null
               ? null
-              : Number(set.weight),
+              : Number(
+                  set.weight
+                ),
 
           reps:
-            set.reps === null
+            set.reps ===
+            null
               ? null
-              : Number(set.reps),
+              : Number(
+                  set.reps
+                ),
 
           completed:
             set.completed,
@@ -168,7 +227,8 @@ export default function WorkoutDetailsScreen() {
     setWorkout({
       id: workoutData.id,
 
-      name: workoutData.name,
+      name:
+        workoutData.name,
 
       workoutDate:
         workoutData.workout_date,
@@ -190,15 +250,22 @@ export default function WorkoutDetailsScreen() {
 
   const totalSets =
     workout?.exercises.reduce(
-      (total, exercise) =>
-        total + exercise.sets.length,
+      (
+        total,
+        exercise
+      ) =>
+        total +
+        exercise.sets.length,
       0
     ) ?? 0;
 
-  function formatWorkoutDate(date: string) {
-    const parsedDate = new Date(
-      `${date}T00:00:00`
-    );
+  function formatWorkoutDate(
+    date: string
+  ) {
+    const parsedDate =
+      new Date(
+        `${date}T00:00:00`
+      );
 
     return parsedDate.toLocaleDateString(
       undefined,
@@ -212,13 +279,35 @@ export default function WorkoutDetailsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingScreen}>
+      <View
+        style={[
+          styles.loadingScreen,
+          {
+            paddingTop:
+              insets.top +
+              spacing.md,
+
+            paddingBottom:
+              Math.max(
+                insets.bottom,
+                10
+              ) +
+              spacing.md,
+          },
+        ]}
+      >
         <ActivityIndicator
           size="large"
-          color={colors.primary}
+          color={
+            colors.primary
+          }
         />
 
-        <Text style={styles.loadingText}>
+        <Text
+          style={
+            styles.loadingText
+          }
+        >
           Loading workout...
         </Text>
       </View>
@@ -227,16 +316,44 @@ export default function WorkoutDetailsScreen() {
 
   if (!workout) {
     return (
-      <View style={styles.loadingScreen}>
-        <Text style={styles.errorTitle}>
+      <View
+        style={[
+          styles.loadingScreen,
+          {
+            paddingTop:
+              insets.top +
+              spacing.md,
+
+            paddingBottom:
+              Math.max(
+                insets.bottom,
+                10
+              ) +
+              spacing.md,
+          },
+        ]}
+      >
+        <Text
+          style={
+            styles.errorTitle
+          }
+        >
           Workout not found
         </Text>
 
         <Pressable
-          style={styles.backButton}
-          onPress={() => router.back()}
+          style={
+            styles.backButton
+          }
+          onPress={() =>
+            router.back()
+          }
         >
-          <Text style={styles.backButtonText}>
+          <Text
+            style={
+              styles.backButtonText
+            }
+          >
             GO BACK
           </Text>
         </Pressable>
@@ -246,24 +363,60 @@ export default function WorkoutDetailsScreen() {
 
   return (
     <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.container}
+      style={
+        styles.screen
+      }
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop:
+            insets.top +
+            spacing.md,
+
+          paddingBottom:
+            Math.max(
+              insets.bottom,
+              10
+            ) +
+            spacing.xxl,
+        },
+      ]}
     >
       <Pressable
-        style={styles.backLink}
-        onPress={() => router.back()}
+        style={
+          styles.backLink
+        }
+        onPress={() =>
+          router.back()
+        }
       >
-        <Text style={styles.backLinkText}>
+        <Text
+          style={
+            styles.backLinkText
+          }
+        >
           ← Back
         </Text>
       </Pressable>
 
-      <View style={styles.header}>
-        <Text style={styles.screenTitle}>
+      <View
+        style={
+          styles.header
+        }
+      >
+        <Text
+          style={
+            styles.screenTitle
+          }
+        >
           {workout.name}
         </Text>
 
-        <Text style={styles.subtitle}>
+        <Text
+          style={
+            styles.subtitle
+          }
+        >
           {formatWorkoutDate(
             workout.workoutDate
           )}
@@ -271,74 +424,145 @@ export default function WorkoutDetailsScreen() {
       </View>
 
       <AppCard>
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>
-              {workout.exercises.length}
+        <View
+          style={
+            styles.summaryRow
+          }
+        >
+          <View
+            style={
+              styles.summaryItem
+            }
+          >
+            <Text
+              style={
+                styles.summaryValue
+              }
+            >
+              {
+                workout.exercises
+                  .length
+              }
             </Text>
 
-            <Text style={styles.summaryLabel}>
+            <Text
+              style={
+                styles.summaryLabel
+              }
+            >
               Exercises
             </Text>
           </View>
 
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>
+          <View
+            style={
+              styles.summaryItem
+            }
+          >
+            <Text
+              style={
+                styles.summaryValue
+              }
+            >
               {totalSets}
             </Text>
 
-            <Text style={styles.summaryLabel}>
+            <Text
+              style={
+                styles.summaryLabel
+              }
+            >
               Sets
             </Text>
           </View>
         </View>
       </AppCard>
 
-      {workout.exercises.length === 0 ? (
+      {workout.exercises
+        .length === 0 ? (
         <AppCard>
-          <Text style={styles.emptyTitle}>
+          <Text
+            style={
+              styles.emptyTitle
+            }
+          >
             No exercises recorded
           </Text>
         </AppCard>
       ) : (
         workout.exercises.map(
-          (exercise, exerciseIndex) => (
-            <AppCard key={exercise.id}>
-              <View style={styles.exerciseHeader}>
+          (
+            exercise,
+            exerciseIndex
+          ) => (
+            <AppCard
+              key={
+                exercise.id
+              }
+            >
+              <View
+                style={
+                  styles.exerciseHeader
+                }
+              >
                 <View
-                  style={styles.exerciseNumber}
+                  style={
+                    styles.exerciseNumber
+                  }
                 >
                   <Text
                     style={
                       styles.exerciseNumberText
                     }
                   >
-                    {exerciseIndex + 1}
+                    {exerciseIndex +
+                      1}
                   </Text>
                 </View>
 
-                <View style={styles.exerciseInfo}>
+                <View
+                  style={
+                    styles.exerciseInfo
+                  }
+                >
                   <Text
-                    style={styles.exerciseName}
+                    style={
+                      styles.exerciseName
+                    }
                   >
-                    {exercise.exerciseName}
+                    {
+                      exercise.exerciseName
+                    }
                   </Text>
 
                   <Text
-                    style={styles.secondaryText}
+                    style={
+                      styles.secondaryText
+                    }
                   >
-                    {exercise.sets.length}{' '}
-                    {exercise.sets.length === 1
+                    {
+                      exercise.sets
+                        .length
+                    }{' '}
+                    {exercise.sets
+                      .length === 1
                       ? 'set'
                       : 'sets'}
                   </Text>
                 </View>
               </View>
 
-              {exercise.sets.length > 0 && (
-                <View style={styles.setTable}>
+              {exercise.sets
+                .length > 0 && (
+                <View
+                  style={
+                    styles.setTable
+                  }
+                >
                   <View
-                    style={styles.setHeaderRow}
+                    style={
+                      styles.setHeaderRow
+                    }
                   >
                     <Text
                       style={[
@@ -377,74 +601,88 @@ export default function WorkoutDetailsScreen() {
                     </Text>
                   </View>
 
-                  {exercise.sets.map((set) => (
-                    <View
-                      key={set.id}
-                      style={styles.setRow}
-                    >
+                  {exercise.sets.map(
+                    (set) => (
                       <View
-                        style={[
-                          styles.setNumberCell,
-                          styles.setNumberColumn,
-                        ]}
+                        key={
+                          set.id
+                        }
+                        style={
+                          styles.setRow
+                        }
                       >
-                        <Text
-                          style={
-                            styles.setNumberText
-                          }
-                        >
-                          {set.setNumber}
-                        </Text>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.valueCell,
-                          styles.inputColumn,
-                        ]}
-                      >
-                        <Text
-                          style={styles.valueText}
-                        >
-                          {set.weight ?? '—'}
-                        </Text>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.valueCell,
-                          styles.inputColumn,
-                        ]}
-                      >
-                        <Text
-                          style={styles.valueText}
-                        >
-                          {set.reps ?? '—'}
-                        </Text>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.doneCell,
-                          styles.doneColumn,
-                          set.completed &&
-                            styles.completedCell,
-                        ]}
-                      >
-                        <Text
+                        <View
                           style={[
-                            styles.doneText,
-                            set.completed &&
-                              styles.completedText,
+                            styles.setNumberCell,
+                            styles.setNumberColumn,
                           ]}
                         >
-                          {set.completed
-                            ? '✓'
-                            : '○'}
-                        </Text>
+                          <Text
+                            style={
+                              styles.setNumberText
+                            }
+                          >
+                            {
+                              set.setNumber
+                            }
+                          </Text>
+                        </View>
+
+                        <View
+                          style={[
+                            styles.valueCell,
+                            styles.inputColumn,
+                          ]}
+                        >
+                          <Text
+                            style={
+                              styles.valueText
+                            }
+                          >
+                            {set.weight ??
+                              '—'}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={[
+                            styles.valueCell,
+                            styles.inputColumn,
+                          ]}
+                        >
+                          <Text
+                            style={
+                              styles.valueText
+                            }
+                          >
+                            {set.reps ??
+                              '—'}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={[
+                            styles.doneCell,
+                            styles.doneColumn,
+                            set.completed &&
+                              styles.completedCell,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.doneText,
+                              set.completed &&
+                                styles.completedText,
+                            ]}
+                          >
+                            {set.completed
+                              ? '✓'
+                              : '○'}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  ))}
+                    )
+                  )}
                 </View>
               )}
             </AppCard>
@@ -455,235 +693,360 @@ export default function WorkoutDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+const styles =
+  StyleSheet.create({
+    screen: {
+      flex: 1,
 
-  container: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
-    gap: spacing.md,
-  },
+      backgroundColor:
+        colors.background,
+    },
 
-  loadingScreen: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
+    container: {
+      paddingHorizontal:
+        spacing.lg,
 
-  loadingText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
+      gap: spacing.md,
+    },
 
-  errorTitle: {
-    color: colors.text,
-    fontSize: fontSize.title,
-    fontWeight: '700',
-  },
+    loadingScreen: {
+      flex: 1,
 
-  backButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-  },
+      backgroundColor:
+        colors.background,
 
-  backButtonText: {
-    color: colors.background,
-    fontSize: fontSize.body,
-    fontWeight: '700',
-  },
+      alignItems: 'center',
 
-  backLink: {
-    alignSelf: 'flex-start',
-    paddingVertical: spacing.sm,
-  },
+      justifyContent:
+        'center',
 
-  backLinkText: {
-    color: colors.primary,
-    fontSize: fontSize.body,
-    fontWeight: '600',
-  },
+      paddingHorizontal:
+        spacing.lg,
 
-  header: {
-    gap: spacing.xs,
-  },
+      gap: spacing.md,
+    },
 
-  screenTitle: {
-    color: colors.text,
-    fontSize: fontSize.screenTitle,
-    fontWeight: '700',
-  },
+    loadingText: {
+      color:
+        colors.textSecondary,
 
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
+      fontSize:
+        fontSize.body,
+    },
 
-  summaryRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
+    errorTitle: {
+      color: colors.text,
 
-  summaryItem: {
-    flex: 1,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: 12,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
+      fontSize:
+        fontSize.title,
 
-  summaryValue: {
-    color: colors.text,
-    fontSize: fontSize.title,
-    fontWeight: '700',
-  },
+      fontWeight: '700',
+    },
 
-  summaryLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.small,
-    marginTop: spacing.xs,
-  },
+    backButton: {
+      backgroundColor:
+        colors.primary,
 
-  emptyTitle: {
-    color: colors.text,
-    fontSize: fontSize.subtitle,
-    fontWeight: '600',
-  },
+      paddingHorizontal:
+        spacing.lg,
 
-  exerciseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
+      paddingVertical:
+        spacing.md,
 
-  exerciseNumber: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+      borderRadius: 12,
+    },
 
-  exerciseNumberText: {
-    color: colors.primary,
-    fontSize: fontSize.body,
-    fontWeight: '700',
-  },
+    backButtonText: {
+      color:
+        colors.background,
 
-  exerciseInfo: {
-    flex: 1,
-  },
+      fontSize:
+        fontSize.body,
 
-  exerciseName: {
-    color: colors.text,
-    fontSize: fontSize.subtitle,
-    fontWeight: '600',
-  },
+      fontWeight: '700',
+    },
 
-  secondaryText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
+    backLink: {
+      alignSelf:
+        'flex-start',
 
-  setTable: {
-    width: '100%',
-    gap: spacing.sm,
-  },
+      paddingVertical:
+        spacing.sm,
+    },
 
-  setHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    gap: 6,
-  },
+    backLinkText: {
+      color:
+        colors.primary,
 
-  setHeaderText: {
-    color: colors.textSecondary,
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
+      fontSize:
+        fontSize.body,
 
-  setRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    gap: 6,
-  },
+      fontWeight: '600',
+    },
 
-  setNumberColumn: {
-    width: 32,
-    flexShrink: 0,
-  },
+    header: {
+      gap: spacing.xs,
+    },
 
-  inputColumn: {
-    flex: 1,
-    minWidth: 0,
-  },
+    screenTitle: {
+      color: colors.text,
 
-  doneColumn: {
-    width: 42,
-    flexShrink: 0,
-  },
+      fontSize:
+        fontSize.screenTitle,
 
-  setNumberCell: {
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+      fontWeight: '700',
+    },
 
-  setNumberText: {
-    color: colors.text,
-    fontSize: fontSize.body,
-    fontWeight: '600',
-  },
+    subtitle: {
+      color:
+        colors.textSecondary,
 
-  valueCell: {
-    height: 44,
-    minWidth: 0,
-    backgroundColor: colors.surfaceSecondary,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+      fontSize:
+        fontSize.body,
+    },
 
-  valueText: {
-    color: colors.text,
-    fontSize: fontSize.body,
-  },
+    summaryRow: {
+      flexDirection: 'row',
 
-  doneCell: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceSecondary,
-    borderColor: colors.border,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+      gap: spacing.md,
+    },
 
-  completedCell: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
+    summaryItem: {
+      flex: 1,
 
-  doneText: {
-    color: colors.textSecondary,
-    fontSize: 22,
-    fontWeight: '700',
-  },
+      backgroundColor:
+        colors.surfaceSecondary,
 
-  completedText: {
-    color: colors.background,
-  },
-});
+      borderRadius: 12,
+
+      padding: spacing.md,
+
+      alignItems: 'center',
+    },
+
+    summaryValue: {
+      color: colors.text,
+
+      fontSize:
+        fontSize.title,
+
+      fontWeight: '700',
+    },
+
+    summaryLabel: {
+      color:
+        colors.textSecondary,
+
+      fontSize:
+        fontSize.small,
+
+      marginTop:
+        spacing.xs,
+    },
+
+    emptyTitle: {
+      color: colors.text,
+
+      fontSize:
+        fontSize.subtitle,
+
+      fontWeight: '600',
+    },
+
+    exerciseHeader: {
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      gap: spacing.md,
+    },
+
+    exerciseNumber: {
+      width: 40,
+
+      height: 40,
+
+      borderRadius: 20,
+
+      backgroundColor:
+        colors.surfaceSecondary,
+
+      alignItems: 'center',
+
+      justifyContent:
+        'center',
+    },
+
+    exerciseNumberText: {
+      color:
+        colors.primary,
+
+      fontSize:
+        fontSize.body,
+
+      fontWeight: '700',
+    },
+
+    exerciseInfo: {
+      flex: 1,
+    },
+
+    exerciseName: {
+      color: colors.text,
+
+      fontSize:
+        fontSize.subtitle,
+
+      fontWeight: '600',
+    },
+
+    secondaryText: {
+      color:
+        colors.textSecondary,
+
+      fontSize:
+        fontSize.body,
+    },
+
+    setTable: {
+      width: '100%',
+
+      gap: spacing.sm,
+    },
+
+    setHeaderRow: {
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      width: '100%',
+
+      gap: 6,
+    },
+
+    setHeaderText: {
+      color:
+        colors.textSecondary,
+
+      fontSize: 10,
+
+      fontWeight: '700',
+
+      textAlign: 'center',
+    },
+
+    setRow: {
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      width: '100%',
+
+      gap: 6,
+    },
+
+    setNumberColumn: {
+      width: 32,
+
+      flexShrink: 0,
+    },
+
+    inputColumn: {
+      flex: 1,
+
+      minWidth: 0,
+    },
+
+    doneColumn: {
+      width: 42,
+
+      flexShrink: 0,
+    },
+
+    setNumberCell: {
+      height: 44,
+
+      alignItems: 'center',
+
+      justifyContent:
+        'center',
+    },
+
+    setNumberText: {
+      color: colors.text,
+
+      fontSize:
+        fontSize.body,
+
+      fontWeight: '600',
+    },
+
+    valueCell: {
+      height: 44,
+
+      minWidth: 0,
+
+      backgroundColor:
+        colors.surfaceSecondary,
+
+      borderColor:
+        colors.border,
+
+      borderWidth: 1,
+
+      borderRadius: 10,
+
+      alignItems: 'center',
+
+      justifyContent:
+        'center',
+    },
+
+    valueText: {
+      color: colors.text,
+
+      fontSize:
+        fontSize.body,
+    },
+
+    doneCell: {
+      height: 44,
+
+      borderRadius: 10,
+
+      backgroundColor:
+        colors.surfaceSecondary,
+
+      borderColor:
+        colors.border,
+
+      borderWidth: 1,
+
+      alignItems: 'center',
+
+      justifyContent:
+        'center',
+    },
+
+    completedCell: {
+      backgroundColor:
+        colors.primary,
+
+      borderColor:
+        colors.primary,
+    },
+
+    doneText: {
+      color:
+        colors.textSecondary,
+
+      fontSize: 22,
+
+      fontWeight: '700',
+    },
+
+    completedText: {
+      color:
+        colors.background,
+    },
+  });

@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppCard from '../../components/AppCard';
 import {
@@ -54,6 +55,7 @@ function getMacroSplit(
 
 export default function NutritionSettingsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const {
     profile,
@@ -196,9 +198,20 @@ export default function NutritionSettingsScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={
-        styles.container
-      }
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop:
+            insets.top +
+            spacing.lg,
+          paddingBottom:
+            Math.max(
+              insets.bottom,
+              10
+            ) +
+            spacing.xxl,
+        },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>

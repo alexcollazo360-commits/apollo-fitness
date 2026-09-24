@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppCard from '../../components/AppCard';
 import {
@@ -20,6 +21,7 @@ import { useProfile } from '../../context/ProfileContext';
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const {
     profile,
@@ -222,9 +224,20 @@ export default function EditProfileScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={
-        styles.container
-      }
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop:
+            insets.top +
+            spacing.lg,
+          paddingBottom:
+            Math.max(
+              insets.bottom,
+              10
+            ) +
+            spacing.xxl,
+        },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>

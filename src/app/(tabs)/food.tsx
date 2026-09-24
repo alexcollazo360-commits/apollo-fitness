@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import {
@@ -64,6 +65,11 @@ export default function FoodScreen() {
   const insets = useSafeAreaInsets();
 
   const router = useRouter();
+
+  const [
+    fabOpen,
+    setFabOpen,
+  ] = useState(false);
 
   const {
     foodEntries,
@@ -304,12 +310,16 @@ export default function FoodScreen() {
         };
 
   function handleAddFood() {
+    setFabOpen(false);
+
     router.push(
       '/food/add'
     );
   }
 
   function handleCreateRecipe() {
+    setFabOpen(false);
+
     router.push(
       '/food/recipe'
     );
@@ -701,6 +711,12 @@ export default function FoodScreen() {
             paddingTop:
               insets.top +
               spacing.md,
+
+            paddingBottom:
+              Math.max(
+                insets.bottom,
+                10
+              ) + 150,
           },
         ]}
       >
@@ -729,28 +745,6 @@ export default function FoodScreen() {
               nutrition
             </Text>
           </View>
-
-          <Pressable
-            style={({
-              pressed,
-            }) => [
-              styles.addFoodButton,
-
-              pressed &&
-                styles.pressed,
-            ]}
-            onPress={
-              handleAddFood
-            }
-          >
-            <Text
-              style={
-                styles.addFoodButtonText
-              }
-            >
-              + Add Food
-            </Text>
-          </Pressable>
         </View>
 
         <Pressable
@@ -949,7 +943,6 @@ export default function FoodScreen() {
             </Text>
           )}
         </AppCard>
-
         <AppCard>
           <View
             style={
@@ -1716,8 +1709,7 @@ export default function FoodScreen() {
               </Pressable>
             </>
           )}
-        </AppCard>
-
+        </AppCard>        
         {mealSections.map(
           (meal) => {
             const mealEntries =
@@ -1964,6 +1956,151 @@ export default function FoodScreen() {
           }
         )}
       </ScrollView>
+
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.fabContainer,
+          {
+            bottom:
+              Math.max(
+                insets.bottom,
+                10
+              ) + 78,
+          },
+        ]}
+      >
+        {fabOpen && (
+          <View
+            style={
+              styles.fabActions
+            }
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Create recipe"
+              onPress={
+                handleCreateRecipe
+              }
+              style={({
+                pressed,
+              }) => [
+                styles.fabActionRow,
+
+                pressed &&
+                  styles.pressed,
+              ]}
+            >
+              <View
+                style={
+                  styles.fabActionLabel
+                }
+              >
+                <Text
+                  style={
+                    styles.fabActionLabelText
+                  }
+                >
+                  Create Recipe
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.fabActionButton
+                }
+              >
+                <Ionicons
+                  name="restaurant-outline"
+                  size={22}
+                  color={
+                    colors.background
+                  }
+                />
+              </View>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add food"
+              onPress={
+                handleAddFood
+              }
+              style={({
+                pressed,
+              }) => [
+                styles.fabActionRow,
+
+                pressed &&
+                  styles.pressed,
+              ]}
+            >
+              <View
+                style={
+                  styles.fabActionLabel
+                }
+              >
+                <Text
+                  style={
+                    styles.fabActionLabelText
+                  }
+                >
+                  Add Food
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.fabActionButton
+                }
+              >
+                <Ionicons
+                  name="add-outline"
+                  size={24}
+                  color={
+                    colors.background
+                  }
+                />
+              </View>
+            </Pressable>
+          </View>
+        )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            fabOpen
+              ? 'Close food actions'
+              : 'Open food actions'
+          }
+          onPress={() =>
+            setFabOpen(
+              (current) =>
+                !current
+            )
+          }
+          style={({
+            pressed,
+          }) => [
+            styles.fabButton,
+
+            pressed &&
+              styles.fabButtonPressed,
+          ]}
+        >
+          <Ionicons
+            name={
+              fabOpen
+                ? 'close'
+                : 'add'
+            }
+            size={30}
+            color={
+              colors.background
+            }
+          />
+        </Pressable>
+      </View>
 
       <Modal
         visible={
@@ -2301,12 +2438,12 @@ export default function FoodScreen() {
                       >
                         <View
                           style={
-                            styles.historyDayInfo
+                            styles.historyDayTop
                           }
                         >
                           <Text
                             style={
-                              styles.historyDayTitle
+                              styles.historyDayDate
                             }
                           >
                             {formatHistoryDate(
@@ -2316,23 +2453,35 @@ export default function FoodScreen() {
 
                           <Text
                             style={
-                              styles.historyDayDetails
+                              styles.historyDayCalories
                             }
                           >
                             {
-                              historyDay.entryCount
-                            }{' '}
-                            {historyDay.entryCount ===
-                            1
-                              ? 'food'
-                              : 'foods'}{' '}
-                            ·{' '}
-                            {
-                              historyDay.calories
+                              historyDay.totalCalories
                             }{' '}
                             kcal
                           </Text>
                         </View>
+
+                        <Text
+                          style={
+                            styles.historyDayFoods
+                          }
+                          numberOfLines={
+                            2
+                          }
+                        >
+                          {historyDay.entries
+                            .map(
+                              (
+                                entry
+                              ) =>
+                                entry.name
+                            )
+                            .join(
+                              ' · '
+                            )}
+                        </Text>
 
                         <Text
                           style={
@@ -2341,7 +2490,12 @@ export default function FoodScreen() {
                         >
                           {isCopying
                             ? 'Copying...'
-                            : 'Copy'}
+                            : `Copy ${historyDay.entries.length} ${
+                                historyDay.entries.length ===
+                                1
+                                  ? 'item'
+                                  : 'items'
+                              }`}
                         </Text>
                       </Pressable>
                     );
@@ -2356,7 +2510,7 @@ export default function FoodScreen() {
               >
                 <Text
                   style={
-                    styles.emptyHistoryTitle
+                    styles.emptyTitle
                   }
                 >
                   No previous{' '}
@@ -2370,14 +2524,13 @@ export default function FoodScreen() {
                   }
                 >
                   Once you log this
-                  meal on another
-                  day, it will appear
-                  here.
+                  meal on another day,
+                  it will appear here.
                 </Text>
               </View>
             )}
 
-            {copyMessage && (
+            {copyMessage ? (
               <View
                 style={
                   styles.errorBox
@@ -2391,7 +2544,7 @@ export default function FoodScreen() {
                   {copyMessage}
                 </Text>
               </View>
-            )}
+            ) : null}
 
             <Pressable
               style={
@@ -2669,8 +2822,7 @@ const styles =
     container: {
       padding: spacing.lg,
 
-      paddingBottom:
-        spacing.xxl,
+      paddingBottom: 180,
 
       gap: spacing.md,
     },
@@ -2713,9 +2865,43 @@ const styles =
         spacing.xs,
     },
 
-    addFoodButton: {
+    fabContainer: {
+      position: 'absolute',
+
+      right: spacing.lg,
+
+      alignItems: 'flex-end',
+
+      gap: spacing.sm,
+    },
+
+    fabActions: {
+      alignItems: 'flex-end',
+
+      gap: spacing.sm,
+    },
+
+    fabActionRow: {
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      justifyContent:
+        'flex-end',
+
+      gap: spacing.sm,
+    },
+
+    fabActionLabel: {
       backgroundColor:
-        colors.primary,
+        colors.surface,
+
+      borderColor:
+        colors.border,
+
+      borderWidth: 1,
+
+      borderRadius: 10,
 
       paddingHorizontal:
         spacing.md,
@@ -2723,22 +2909,95 @@ const styles =
       paddingVertical:
         spacing.sm,
 
-      borderRadius: 12,
+      shadowColor: '#000000',
+
+      shadowOffset: {
+        width: 0,
+        height: 3,
+      },
+
+      shadowOpacity: 0.25,
+
+      shadowRadius: 6,
+
+      elevation: 8,
+    },
+
+    fabActionLabelText: {
+      color: colors.text,
+
+      fontSize:
+        fontSize.small,
+
+      fontWeight: '700',
+    },
+
+    fabActionButton: {
+      width: 46,
+
+      height: 46,
+
+      borderRadius: 23,
 
       alignItems: 'center',
 
       justifyContent:
         'center',
+
+      backgroundColor:
+        colors.primary,
+
+      shadowColor: '#000000',
+
+      shadowOffset: {
+        width: 0,
+        height: 3,
+      },
+
+      shadowOpacity: 0.28,
+
+      shadowRadius: 7,
+
+      elevation: 9,
     },
 
-    addFoodButtonText: {
-      color:
-        colors.background,
+    fabButton: {
+      width: 58,
 
-      fontSize:
-        fontSize.body,
+      height: 58,
 
-      fontWeight: '700',
+      borderRadius: 29,
+
+      alignItems: 'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        colors.primary,
+
+      shadowColor: '#000000',
+
+      shadowOffset: {
+        width: 0,
+        height: 5,
+      },
+
+      shadowOpacity: 0.32,
+
+      shadowRadius: 10,
+
+      elevation: 12,
+    },
+
+    fabButtonPressed: {
+      opacity: 0.82,
+
+      transform: [
+        {
+          scale: 0.96,
+        },
+      ],
     },
 
     copyDayButton: {
@@ -3204,8 +3463,7 @@ const styles =
       borderRadius: 6,
 
       paddingHorizontal: 7,
-
-      paddingVertical: 3,
+            paddingVertical: 3,
 
       backgroundColor:
         'rgba(74, 222, 128, 0.10)',
@@ -3837,6 +4095,48 @@ const styles =
 
       fontSize:
         fontSize.small,
+    },
+
+    historyDayTop: {
+      width: '100%',
+
+      flexDirection: 'row',
+
+      justifyContent:
+        'space-between',
+
+      alignItems: 'center',
+
+      gap: spacing.sm,
+    },
+
+    historyDayDate: {
+      color: colors.text,
+
+      fontSize:
+        fontSize.body,
+
+      fontWeight: '600',
+    },
+
+    historyDayCalories: {
+      color:
+        colors.textSecondary,
+
+      fontSize:
+        fontSize.small,
+
+      fontWeight: '600',
+    },
+
+    historyDayFoods: {
+      color:
+        colors.textSecondary,
+
+      fontSize:
+        fontSize.small,
+
+      lineHeight: 18,
     },
 
     historyDayAction: {

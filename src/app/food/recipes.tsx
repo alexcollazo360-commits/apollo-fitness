@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   ActivityIndicator,
@@ -162,6 +163,7 @@ function matchesCuratedFilter(
 
 export default function RecipesScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const {
     addFoodEntry,
@@ -908,9 +910,18 @@ export default function RecipesScreen() {
         }
       >
         <ScrollView
-          contentContainerStyle={
-            styles.content
-          }
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop:
+                insets.top + 24,
+              paddingBottom:
+                Math.max(
+                  insets.bottom,
+                  10
+                ) + 48,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           <Pressable

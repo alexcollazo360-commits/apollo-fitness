@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import type { ReactNode } from 'react';
 import {
   useEffect,
   useMemo,
@@ -17,6 +18,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+
+import {
+  GestureHandlerRootView,
+  Swipeable,
+} from 'react-native-gesture-handler';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -280,6 +286,162 @@ function SetRow({
   );
 }
 
+const HISTORY_SWIPE_DISTANCE = 92;
+
+type WorkoutHistorySwipeCardProps = {
+  workoutId: string;
+  children: ReactNode;
+  deleting: boolean;
+  openWorkoutId: string | null;
+  onOpen: (workoutId: string | null) => void;
+  onView: () => void;
+  onDelete: () => void;
+};
+
+function WorkoutHistorySwipeCard({
+  workoutId,
+  children,
+  deleting,
+  openWorkoutId,
+  onOpen,
+  onView,
+  onDelete,
+}: WorkoutHistorySwipeCardProps) {
+  const swipeableRef =
+    useRef<Swipeable | null>(
+      null
+    );
+
+  useEffect(() => {
+    if (
+      openWorkoutId !==
+      workoutId
+    ) {
+      swipeableRef.current?.close();
+    }
+  }, [
+    openWorkoutId,
+    workoutId,
+  ]);
+
+  function handleView() {
+    swipeableRef.current?.close();
+    onOpen(null);
+    onView();
+  }
+
+  function handleDelete() {
+    swipeableRef.current?.close();
+    onOpen(null);
+    onDelete();
+  }
+
+  return (
+    <View
+      style={
+        styles.historySwipeContainer
+      }
+    >
+      <Swipeable
+        ref={swipeableRef}
+        friction={1}
+        leftThreshold={
+          HISTORY_SWIPE_DISTANCE /
+          2
+        }
+        rightThreshold={
+          HISTORY_SWIPE_DISTANCE /
+          2
+        }
+        overshootLeft={false}
+        overshootRight={false}
+        dragOffsetFromLeftEdge={10}
+        dragOffsetFromRightEdge={10}
+        onSwipeableWillOpen={() => {
+          onOpen(workoutId);
+        }}
+        onSwipeableClose={() => {
+          if (
+            openWorkoutId ===
+            workoutId
+          ) {
+            onOpen(null);
+          }
+        }}
+        renderLeftActions={() => (
+          <View
+            style={
+              styles.historySwipeLeftRail
+            }
+          >
+            <Pressable
+              style={[
+                styles.historySwipeAction,
+                styles.historySwipeViewAction,
+              ]}
+              onPress={
+                handleView
+              }
+              disabled={deleting}
+            >
+              <Text
+                style={
+                  styles.historySwipeViewText
+                }
+              >
+                VIEW
+              </Text>
+            </Pressable>
+          </View>
+        )}
+        renderRightActions={() => (
+          <View
+            style={
+              styles.historySwipeRightRail
+            }
+          >
+            <Pressable
+              style={[
+                styles.historySwipeAction,
+                styles.historySwipeDeleteAction,
+              ]}
+              onPress={
+                handleDelete
+              }
+              disabled={deleting}
+            >
+              {deleting ? (
+                <ActivityIndicator
+                  size="small"
+                  color={
+                    colors.danger
+                  }
+                />
+              ) : (
+                <Text
+                  style={
+                    styles.historySwipeDeleteText
+                  }
+                >
+                  DELETE
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        )}
+        containerStyle={
+          styles.historySwipeable
+        }
+        childrenContainerStyle={
+          styles.historySwipeForeground
+        }
+      >
+        {children}
+      </Swipeable>
+    </View>
+  );
+}
+
 export default function WorkoutScreen() {
   const insets = useSafeAreaInsets();
 
@@ -293,6 +455,14 @@ export default function WorkoutScreen() {
 
   const addExerciseY =
     useRef(0);
+
+  const newWorkoutY =
+    useRef(0);
+
+  const [
+    fabOpen,
+    setFabOpen,
+  ] = useState(false);
 
   const {
     activeWorkout,
@@ -405,6 +575,13 @@ export default function WorkoutScreen() {
   const [
     savingTemplateWorkoutId,
     setSavingTemplateWorkoutId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    openHistoryWorkoutId,
+    setOpenHistoryWorkoutId,
   ] = useState<string | null>(
     null
   );
@@ -1234,7 +1411,30 @@ export default function WorkoutScreen() {
   }
 
   function openRunTracker() {
+    setFabOpen(false);
     router.push('/workout/run');
+  }
+
+  function openWorkoutFromFab() {
+    setFabOpen(false);
+
+    if (activeWorkout) {
+      scrollViewRef.current?.scrollTo({
+        y: 0,
+        animated: true,
+      });
+
+      return;
+    }
+
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(
+        newWorkoutY.current -
+          spacing.md,
+        0
+      ),
+      animated: true,
+    });
   }
 
   function formatRunDate(
@@ -1377,24 +1577,27 @@ export default function WorkoutScreen() {
   }
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
+    <GestureHandlerRootView
       style={styles.screen}
-      contentContainerStyle={[
-        styles.container,
-        {
-          paddingTop:
-            insets.top +
-            spacing.md,
-          paddingBottom:
-            Math.max(
-              insets.bottom,
-              10
-            ) + 100,
-        },
-      ]}
-      keyboardShouldPersistTaps="handled"
     >
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop:
+              insets.top +
+              spacing.md,
+            paddingBottom:
+              Math.max(
+                insets.bottom,
+                10
+              ) + 140,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={styles.header}>
         <Text style={styles.screenTitle}>
           Workout
@@ -2866,6 +3069,10 @@ export default function WorkoutScreen() {
             style={
               styles.sectionHeader
             }
+            onLayout={(event) => {
+              newWorkoutY.current =
+                event.nativeEvent.layout.y;
+            }}
           >
             <View>
               <Text
@@ -3011,216 +3218,241 @@ export default function WorkoutScreen() {
           ) : (
             workoutHistory.map(
               (workout) => (
-                <AppCard
-                  key={
+                <WorkoutHistorySwipeCard
+                  key={workout.id}
+                  workoutId={
                     workout.id
                   }
+                  deleting={
+                    deletingWorkoutId ===
+                    workout.id
+                  }
+                  openWorkoutId={
+                    openHistoryWorkoutId
+                  }
+                  onOpen={
+                    setOpenHistoryWorkoutId
+                  }
+                  onView={() =>
+                    openWorkoutDetails(
+                      workout.id
+                    )
+                  }
+                  onDelete={() =>
+                    confirmDeleteWorkout(
+                      workout.id,
+                      workout.name
+                    )
+                  }
                 >
-                  <View
-                    style={
-                      styles.historyCardHeader
-                    }
-                  >
+                  <AppCard>
                     <View
                       style={
-                        styles.historyInfo
+                        styles.historyCardHeader
                       }
                     >
-                      <Text
+                      <View
                         style={
-                          styles.historyName
+                          styles.historyInfo
                         }
                       >
-                        {
-                          workout.name
-                        }
-                      </Text>
+                        <Text
+                          style={
+                            styles.historyName
+                          }
+                        >
+                          {workout.name}
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.historyDate
+                          }
+                        >
+                          {formatWorkoutDate(
+                            workout.workoutDate
+                          )}
+                        </Text>
+                      </View>
 
                       <Text
                         style={
-                          styles.historyDate
+                          styles.completedText
                         }
                       >
-                        {formatWorkoutDate(
-                          workout.workoutDate
+                        COMPLETE
+                      </Text>
+                    </View>
+
+                    <View
+                      style={
+                        styles.historyStatRow
+                      }
+                    >
+                      <View
+                        style={
+                          styles.historyStat
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.historyStatValue
+                          }
+                        >
+                          {workout.exerciseCount}
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.historyStatLabel
+                          }
+                        >
+                          Exercises
+                        </Text>
+                      </View>
+
+                      <View
+                        style={
+                          styles.historyStat
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.historyStatValue
+                          }
+                        >
+                          {workout.setCount}
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.historyStatLabel
+                          }
+                        >
+                          Sets
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View
+                      style={
+                        styles.historyActions
+                      }
+                    >
+                      <Pressable
+                        style={
+                          styles.historySecondaryAction
+                        }
+                        disabled={
+                          savingTemplateWorkoutId ===
+                            workout.id ||
+                          deletingWorkoutId ===
+                            workout.id
+                        }
+                        onPress={() =>
+                          confirmSaveTemplate(
+                            workout.id,
+                            workout.name
+                          )
+                        }
+                      >
+                        {savingTemplateWorkoutId ===
+                        workout.id ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={
+                              colors.primary
+                            }
+                          />
+                        ) : (
+                          <Text
+                            style={
+                              styles.historySecondaryActionText
+                            }
+                          >
+                            SAVE TEMPLATE
+                          </Text>
                         )}
-                      </Text>
+                      </Pressable>
                     </View>
-
-                    <Text
-                      style={
-                        styles.completedText
-                      }
-                    >
-                      COMPLETE
-                    </Text>
-                  </View>
-
-                  <View
-                    style={
-                      styles.historyStatRow
-                    }
-                  >
-                    <View
-                      style={
-                        styles.historyStat
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.historyStatValue
-                        }
-                      >
-                        {
-                          workout.exerciseCount
-                        }
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.historyStatLabel
-                        }
-                      >
-                        Exercises
-                      </Text>
-                    </View>
-
-                    <View
-                      style={
-                        styles.historyStat
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.historyStatValue
-                        }
-                      >
-                        {
-                          workout.setCount
-                        }
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.historyStatLabel
-                        }
-                      >
-                        Sets
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View
-                    style={
-                      styles.historyActions
-                    }
-                  >
-                    <Pressable
-                      style={
-                        styles.historyPrimaryAction
-                      }
-                      onPress={() =>
-                        openWorkoutDetails(
-                          workout.id
-                        )
-                      }
-                      disabled={
-                        deletingWorkoutId ===
-                        workout.id
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.historyPrimaryActionText
-                        }
-                      >
-                        VIEW
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={
-                        styles.historySecondaryAction
-                      }
-                      disabled={
-                        savingTemplateWorkoutId ===
-                          workout.id ||
-                        deletingWorkoutId ===
-                          workout.id
-                      }
-                      onPress={() =>
-                        confirmSaveTemplate(
-                          workout.id,
-                          workout.name
-                        )
-                      }
-                    >
-                      {savingTemplateWorkoutId ===
-                      workout.id ? (
-                        <ActivityIndicator
-                          size="small"
-                          color={
-                            colors.primary
-                          }
-                        />
-                      ) : (
-                        <Text
-                          style={
-                            styles.historySecondaryActionText
-                          }
-                        >
-                          SAVE TEMPLATE
-                        </Text>
-                      )}
-                    </Pressable>
-
-                    <Pressable
-                      style={
-                        styles.historyDeleteAction
-                      }
-                      disabled={
-                        deletingWorkoutId ===
-                        workout.id
-                      }
-                      onPress={() =>
-                        confirmDeleteWorkout(
-                          workout.id,
-                          workout.name
-                        )
-                      }
-                    >
-                      {deletingWorkoutId ===
-                      workout.id ? (
-                        <ActivityIndicator
-                          size="small"
-                          color={
-                            colors.danger
-                          }
-                        />
-                      ) : (
-                        <Text
-                          style={
-                            styles.historyDeleteActionText
-                          }
-                        >
-                          DELETE
-                        </Text>
-                      )}
-                    </Pressable>
-                  </View>
-                </AppCard>
+                  </AppCard>
+                </WorkoutHistorySwipeCard>
               )
             )
           )}
         </>
       )}
-    </ScrollView>
+      </ScrollView>
+
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.fabLayer,
+          {
+            bottom:
+              Math.max(
+                insets.bottom,
+                10
+              ) + 78,
+          },
+        ]}
+      >
+        {fabOpen && (
+          <View style={styles.fabMenu}>
+            <Pressable
+              style={styles.fabAction}
+              onPress={openWorkoutFromFab}
+            >
+              <Text style={styles.fabActionText}>
+                {activeWorkout
+                  ? 'Resume Workout'
+                  : 'Start Workout'}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.fabAction}
+              onPress={openRunTracker}
+            >
+              <Text style={styles.fabActionText}>
+                Outdoor Run
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            fabOpen
+              ? 'Close workout actions'
+              : 'Open workout actions'
+          }
+          style={styles.fabButton}
+          onPress={() =>
+            setFabOpen(
+              (current) => !current
+            )
+          }
+        >
+          <Text style={styles.fabButtonText}>
+            {fabOpen ? '×' : '+'}
+          </Text>
+        </Pressable>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
 const styles =
   StyleSheet.create({
     screen: {
+      flex: 1,
+      backgroundColor:
+        colors.background,
+    },
+
+    scrollView: {
       flex: 1,
       backgroundColor:
         colors.background,
@@ -4118,6 +4350,82 @@ const styles =
         spacing.xs,
     },
 
+    historySwipeContainer: {
+      overflow: 'hidden',
+      borderRadius: 16,
+      backgroundColor:
+        colors.surface,
+    },
+
+    historySwipeable: {
+      overflow: 'hidden',
+      borderRadius: 16,
+      backgroundColor:
+        colors.surface,
+    },
+
+    historySwipeLeftRail: {
+      width:
+        HISTORY_SWIPE_DISTANCE,
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderTopLeftRadius: 16,
+      borderBottomLeftRadius: 16,
+      overflow: 'hidden',
+    },
+
+    historySwipeRightRail: {
+      width:
+        HISTORY_SWIPE_DISTANCE,
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderTopRightRadius: 16,
+      borderBottomRightRadius: 16,
+      overflow: 'hidden',
+    },
+
+    historySwipeAction: {
+      flex: 1,
+      width:
+        HISTORY_SWIPE_DISTANCE,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
+
+    historySwipeViewAction: {
+      borderRightColor:
+        colors.primary,
+      borderRightWidth: 1,
+    },
+
+    historySwipeDeleteAction: {
+      borderLeftColor:
+        colors.danger,
+      borderLeftWidth: 1,
+    },
+
+    historySwipeViewText: {
+      color: colors.primary,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+    },
+
+    historySwipeDeleteText: {
+      color: colors.danger,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+    },
+
+    historySwipeForeground: {
+      backgroundColor:
+        colors.background,
+    },
+
     historyActions: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -4337,5 +4645,57 @@ const styles =
       fontSize:
         fontSize.small,
       fontWeight: '700',
+    },
+
+    fabLayer: {
+      position: 'absolute',
+      right: spacing.lg,
+      alignItems: 'flex-end',
+      gap: spacing.sm,
+    },
+
+    fabMenu: {
+      alignItems: 'flex-end',
+      gap: spacing.sm,
+    },
+
+    fabAction: {
+      minHeight: 44,
+      backgroundColor:
+        colors.surface,
+      borderColor:
+        colors.border,
+      borderWidth: 1,
+      borderRadius: 22,
+      paddingHorizontal:
+        spacing.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    fabActionText: {
+      color: colors.text,
+      fontSize:
+        fontSize.small,
+      fontWeight: '700',
+    },
+
+    fabButton: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      backgroundColor:
+        colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    fabButtonText: {
+      color:
+        colors.background,
+      fontSize: 34,
+      lineHeight: 38,
+      fontWeight: '400',
+      textAlign: 'center',
     },
   });

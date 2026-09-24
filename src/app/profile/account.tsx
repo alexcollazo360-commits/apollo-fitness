@@ -1,31 +1,36 @@
 import { useRouter } from 'expo-router';
 import {
-    Alert,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppCard from '../../components/AppCard';
 import {
-    colors,
-    fontSize,
-    spacing,
+  colors,
+  fontSize,
+  spacing,
 } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 
 export default function AccountSettingsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   async function handleSignOut() {
-    const { error } = await supabase.auth.signOut();
+    const { error } =
+      await supabase.auth.signOut();
 
     if (error) {
       if (Platform.OS === 'web') {
-        window.alert('There was a problem signing you out.');
+        window.alert(
+          'There was a problem signing you out.'
+        );
       } else {
         Alert.alert(
           'Unable to sign out',
@@ -41,9 +46,10 @@ export default function AccountSettingsScreen() {
 
   function confirmSignOut() {
     if (Platform.OS === 'web') {
-      const confirmed = window.confirm(
-        'Are you sure you want to sign out?'
-      );
+      const confirmed =
+        window.confirm(
+          'Are you sure you want to sign out?'
+        );
 
       if (confirmed) {
         handleSignOut();
@@ -72,101 +78,162 @@ export default function AccountSettingsScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop:
+            insets.top +
+            spacing.lg,
+          paddingBottom:
+            Math.max(
+              insets.bottom,
+              10
+            ) +
+            spacing.xxl,
+        },
+      ]}
     >
       <View style={styles.header}>
-        <Text style={styles.screenTitle}>Account Settings</Text>
+        <Text
+          style={styles.screenTitle}
+        >
+          Account Settings
+        </Text>
 
-        <Text style={styles.subtitle}>
-          Manage your Apollo Fitness account.
+        <Text
+          style={styles.subtitle}
+        >
+          Manage your Apollo Fitness
+          account.
         </Text>
       </View>
 
       <AppCard>
-        <Text style={styles.sectionTitle}>Account</Text>
+        <Text
+          style={styles.sectionTitle}
+        >
+          Account
+        </Text>
 
-        <Text style={styles.description}>
-          Sign out of your account on this device.
+        <Text
+          style={styles.description}
+        >
+          Sign out of your account
+          on this device.
         </Text>
 
         <Pressable
-          style={styles.signOutButton}
+          style={
+            styles.signOutButton
+          }
           onPress={confirmSignOut}
         >
-          <Text style={styles.signOutButtonText}>SIGN OUT</Text>
+          <Text
+            style={
+              styles.signOutButtonText
+            }
+          >
+            SIGN OUT
+          </Text>
         </Pressable>
       </AppCard>
 
       <Pressable
         style={styles.backButton}
-        onPress={() => router.back()}
+        onPress={() =>
+          router.back()
+        }
       >
-        <Text style={styles.backButtonText}>Back</Text>
+        <Text
+          style={
+            styles.backButtonText
+          }
+        >
+          Back
+        </Text>
       </Pressable>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+const styles =
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor:
+        colors.background,
+    },
 
-  container: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
-    gap: spacing.md,
-  },
+    container: {
+      padding: spacing.lg,
+      paddingBottom:
+        spacing.xxl,
+      gap: spacing.md,
+    },
 
-  header: {
-    marginBottom: spacing.sm,
-  },
+    header: {
+      marginBottom:
+        spacing.sm,
+    },
 
-  screenTitle: {
-    color: colors.text,
-    fontSize: fontSize.screenTitle,
-    fontWeight: '700',
-  },
+    screenTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.screenTitle,
+      fontWeight: '700',
+    },
 
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-    marginTop: spacing.xs,
-  },
+    subtitle: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+      marginTop:
+        spacing.xs,
+    },
 
-  sectionTitle: {
-    color: colors.text,
-    fontSize: fontSize.title,
-    fontWeight: '600',
-  },
+    sectionTitle: {
+      color: colors.text,
+      fontSize:
+        fontSize.title,
+      fontWeight: '600',
+    },
 
-  description: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-  },
+    description: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+    },
 
-  signOutButton: {
-    backgroundColor: colors.danger,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
+    signOutButton: {
+      backgroundColor:
+        colors.danger,
+      paddingVertical:
+        spacing.md,
+      borderRadius: 12,
+      alignItems: 'center',
+    },
 
-  signOutButtonText: {
-    color: colors.background,
-    fontSize: fontSize.body,
-    fontWeight: '700',
-  },
+    signOutButtonText: {
+      color:
+        colors.background,
+      fontSize:
+        fontSize.body,
+      fontWeight: '700',
+    },
 
-  backButton: {
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
+    backButton: {
+      paddingVertical:
+        spacing.md,
+      alignItems: 'center',
+    },
 
-  backButtonText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.body,
-    fontWeight: '600',
-  },
-});
+    backButtonText: {
+      color:
+        colors.textSecondary,
+      fontSize:
+        fontSize.body,
+      fontWeight: '600',
+    },
+  });

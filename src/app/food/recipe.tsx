@@ -1,41 +1,43 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import {
-    Stack,
-    useLocalSearchParams,
-    useRouter,
+  Stack,
+  useLocalSearchParams,
+  useRouter,
 } from 'expo-router';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import {
-    useEffect,
-    useMemo,
-    useState,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 
 import { colors } from '../../constants/theme';
 
 import {
-    FoodLibraryItem,
-    useFood,
+  FoodLibraryItem,
+  useFood,
 } from '../../context/FoodContext';
 
 import {
-    NewRecipe,
-    NewRecipeIngredient,
-    useRecipes,
+  NewRecipe,
+  NewRecipeIngredient,
+  useRecipes,
 } from '../../context/RecipeContext';
 
 function numberValue(
@@ -65,6 +67,7 @@ function formatNutrition(
 
 export default function RecipeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const params =
     useLocalSearchParams<{
@@ -784,9 +787,18 @@ export default function RecipeScreen() {
         }
       >
         <ScrollView
-          contentContainerStyle={
-            styles.content
-          }
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop:
+                insets.top + 24,
+              paddingBottom:
+                Math.max(
+                  insets.bottom,
+                  10
+                ) + 48,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           <View

@@ -3,6 +3,8 @@ import {
   useRouter,
 } from 'expo-router';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import {
   useEffect,
   useMemo,
@@ -117,6 +119,7 @@ function scaleServingText(
 
 export default function AddFoodScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const { id } =
     useLocalSearchParams<{
@@ -1332,9 +1335,18 @@ export default function AddFoodScreen() {
       }
     >
       <ScrollView
-        contentContainerStyle={
-          styles.container
-        }
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop:
+              insets.top + spacing.lg,
+            paddingBottom:
+              Math.max(
+                insets.bottom,
+                10
+              ) + spacing.xxl,
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <View
