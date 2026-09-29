@@ -3,22 +3,22 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-    borderRadius,
-    colors,
-    fontSize,
-    spacing,
+  borderRadius,
+  colors,
+  fontSize,
+  spacing,
 } from '../../constants/theme';
 
+import RunMap, { type RunMapHandle } from '../../components/RunMap';
 import { useRun } from '../../context/RunContext';
 
 type RunStatus =
@@ -93,7 +93,7 @@ export default function RunTrackerScreen() {
   const [distanceMeters, setDistanceMeters] =
     useState(0);
   const [currentSpeedMps, setCurrentSpeedMps] =
-    useState<number | null>(null);
+    useState(0);
   const [gpsStatus, setGpsStatus] =
     useState('GPS CHECKING');
   const [gpsReady, setGpsReady] =
@@ -108,7 +108,7 @@ export default function RunTrackerScreen() {
   const [currentCoordinate, setCurrentCoordinate] =
     useState<RoutePoint | null>(null);
 
-  const mapRef = useRef<MapView | null>(null);
+  const mapRef = useRef<RunMapHandle | null>(null);
 
   const locationSubscription =
     useRef<Location.LocationSubscription | null>(
@@ -328,7 +328,7 @@ export default function RunTrackerScreen() {
       locationSubscription.current?.remove();
       locationSubscription.current =
         null;
-      setCurrentSpeedMps(null);
+      setCurrentSpeedMps(0);
       return;
     }
 
@@ -555,7 +555,7 @@ export default function RunTrackerScreen() {
 
     setDistanceMeters(0);
     setElapsedSeconds(0);
-    setCurrentSpeedMps(null);
+    setCurrentSpeedMps(0);
     setSaveError(null);
     runSaved.current = false;
     runStartedAt.current =
@@ -584,7 +584,7 @@ export default function RunTrackerScreen() {
     locationSubscription.current =
       null;
 
-    setCurrentSpeedMps(null);
+    setCurrentSpeedMps(0);
     setSaveError(null);
 
     const completedAt =
@@ -658,7 +658,7 @@ export default function RunTrackerScreen() {
     setSaveError(null);
     setElapsedSeconds(0);
     setDistanceMeters(0);
-    setCurrentSpeedMps(null);
+    setCurrentSpeedMps(0);
     setRoutePoints(
       currentCoordinate
         ? [currentCoordinate]
@@ -765,44 +765,12 @@ export default function RunTrackerScreen() {
 
         <View style={styles.mapCard}>
           {currentCoordinate ? (
-            <MapView
+            <RunMap
               ref={mapRef}
               style={styles.map}
-              initialRegion={{
-                latitude:
-                  currentCoordinate.latitude,
-                longitude:
-                  currentCoordinate.longitude,
-                latitudeDelta: 0.006,
-                longitudeDelta: 0.006,
-              }}
-              showsUserLocation
-              showsMyLocationButton={false}
-              showsCompass={false}
-              rotateEnabled={false}
-              pitchEnabled={false}
-            >
-              {routePoints.length > 1 ? (
-                <Polyline
-                  coordinates={
-                    routePoints
-                  }
-                  strokeColor={
-                    colors.primary
-                  }
-                  strokeWidth={5}
-                />
-              ) : null}
-
-              {routePoints.length > 0 ? (
-                <Marker
-                  coordinate={
-                    routePoints[0]
-                  }
-                  title="Run Start"
-                />
-              ) : null}
-            </MapView>
+              currentCoordinate={currentCoordinate}
+              routePoints={routePoints}
+            />
           ) : (
             <View
               style={

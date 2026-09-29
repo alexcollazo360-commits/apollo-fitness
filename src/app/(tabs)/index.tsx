@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 
 import AppCard from '../../components/AppCard';
 import {
@@ -649,21 +650,85 @@ export default function TodayScreen() {
             styles.header
           }
         >
-          <Text
+          <View
             style={
-              styles.screenTitle
+              styles.brandRow
             }
           >
-            Today
-          </Text>
+            <View
+              style={
+                styles.brandMark
+              }
+            >
+              <Text
+                style={
+                  styles.brandMarkText
+                }
+              >
+                AU
+              </Text>
+            </View>
 
-          <Text
+            <View
+              style={
+                styles.brandCopy
+              }
+            >
+              <Text
+                style={
+                  styles.brandName
+                }
+              >
+                APOLLO ULTRA
+              </Text>
+
+              <Text
+                style={
+                  styles.brandTagline
+                }
+              >
+                TRACK TODAY. BUILD TOMORROW.
+              </Text>
+            </View>
+          </View>
+
+          <View
             style={
-              styles.dateText
+              styles.todayHeadingRow
             }
           >
-            {formattedDate}
-          </Text>
+            <View>
+              <Text
+                style={
+                  styles.screenTitle
+                }
+              >
+                Today
+              </Text>
+
+              <Text
+                style={
+                  styles.dateText
+                }
+              >
+                {formattedDate}
+              </Text>
+            </View>
+
+            <View
+              style={
+                styles.todayBadge
+              }
+            >
+              <Ionicons
+                name="pulse-outline"
+                size={18}
+                color={
+                  colors.primary
+                }
+              />
+            </View>
+          </View>
         </View>
 
         <AppCard>
@@ -696,69 +761,257 @@ export default function TodayScreen() {
             </Pressable>
           </View>
 
-          <View>
-            <Text
-              style={
-                styles.label
-              }
-            >
-              CALORIES
-            </Text>
-
+          <View
+            style={
+              styles.nutritionDashboard
+            }
+          >
             <View
               style={
-                styles.calorieRow
+                styles.calorieRingWrap
               }
             >
-              <Text
-                style={
-                  styles.calorieValue
-                }
+              <Svg
+                width={150}
+                height={150}
+                viewBox="0 0 150 150"
               >
-                {totalCalories}
-              </Text>
+                <Circle
+                  cx="75"
+                  cy="75"
+                  r="61"
+                  fill="none"
+                  stroke={
+                    colors.surfaceSecondary
+                  }
+                  strokeWidth="13"
+                />
 
-              <Text
-                style={
-                  styles.calorieTarget
-                }
-              >
-                {' '}
-                /{' '}
-                {calorieTarget.toLocaleString()}{' '}
-                kcal
-              </Text>
-            </View>
+                <Circle
+                  cx="75"
+                  cy="75"
+                  r="61"
+                  fill="none"
+                  stroke={
+                    isOverCalories
+                      ? colors.warning
+                      : colors.primary
+                  }
+                  strokeWidth="13"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 61}`}
+                  strokeDashoffset={`${
+                    2 *
+                    Math.PI *
+                    61 *
+                    (1 -
+                      calorieProgress /
+                        100)
+                  }`}
+                  transform="rotate(-90 75 75)"
+                />
+              </Svg>
 
-            <View
-              style={
-                styles.progressTrack
-              }
-            >
               <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${calorieProgress}%`,
-                  },
+                style={
+                  styles.calorieRingContent
+                }
+              >
+                <Text
+                  style={
+                    styles.calorieRingValue
+                  }
+                >
+                  {totalCalories.toLocaleString()}
+                </Text>
 
-                  isOverCalories &&
-                    styles.progressFillOver,
-                ]}
-              />
+                <Text
+                  style={
+                    styles.calorieRingTarget
+                  }
+                >
+                  of {calorieTarget.toLocaleString()}
+                </Text>
+
+                <Text
+                  style={
+                    styles.calorieRingUnit
+                  }
+                >
+                  kcal
+                </Text>
+              </View>
             </View>
 
             <View
               style={
-                styles.calorieSummaryRow
+                styles.macroPanel
               }
             >
+                            <View
+                style={
+                  styles.macroItem
+                }
+              >
+                <View
+                  style={
+                    styles.macroLabelRow
+                  }
+                >
+                  <Text
+                    style={
+                      styles.macroName
+                    }
+                  >
+                    Protein
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.macroNumbers
+                    }
+                  >
+                    {totalProtein} /{' '}
+                    {proteinTarget} g
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.macroTrack
+                  }
+                >
+                  <View
+                    style={[
+                      styles.macroFill,
+                      {
+                        width: `${proteinProgress}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View
+                style={
+                  styles.macroItem
+                }
+              >
+                <View
+                  style={
+                    styles.macroLabelRow
+                  }
+                >
+                  <Text
+                    style={
+                      styles.macroName
+                    }
+                  >
+                    Carbs
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.macroNumbers
+                    }
+                  >
+                    {totalCarbs} /{' '}
+                    {carbTarget} g
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.macroTrack
+                  }
+                >
+                  <View
+                    style={[
+                      styles.macroFill,
+                      {
+                        width: `${carbProgress}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View
+                style={
+                  styles.macroItem
+                }
+              >
+                <View
+                  style={
+                    styles.macroLabelRow
+                  }
+                >
+                  <Text
+                    style={
+                      styles.macroName
+                    }
+                  >
+                    Fat
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.macroNumbers
+                    }
+                  >
+                    {totalFat} /{' '}
+                    {fatTarget} g
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.macroTrack
+                  }
+                >
+                  <View
+                    style={[
+                      styles.macroFill,
+                      {
+                        width: `${fatProgress}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View
+            style={
+              styles.calorieFooter
+            }
+          >
+            <View
+              style={
+                styles.calorieStatus
+              }
+            >
+              <Ionicons
+                name={
+                  isOverCalories
+                    ? 'alert-circle-outline'
+                    : 'flame-outline'
+                }
+                size={15}
+                color={
+                  isOverCalories
+                    ? colors.warning
+                    : colors.primary
+                }
+              />
+
               <Text
                 style={[
-                  styles.secondaryText,
+                  styles.calorieStatusText,
 
                   isOverCalories &&
-                    styles.overTargetText,
+                    styles.calorieStatusOver,
                 ]}
               >
                 {calorieStatusAmount.toLocaleString()}{' '}
@@ -767,304 +1020,23 @@ export default function TodayScreen() {
                   ? 'over target'
                   : 'remaining'}
               </Text>
-
-              <Text
-                style={[
-                  styles.progressText,
-
-                  isOverCalories &&
-                    styles.overTargetText,
-                ]}
-              >
-                {Math.round(
-                  (totalCalories /
-                    Math.max(
-                      calorieTarget,
-                      1
-                    )) *
-                    100
-                )}
-                %
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={
-              styles.macroList
-            }
-          >
-            <View
-              style={
-                styles.macroBlock
-              }
-            >
-              <View
-                style={
-                  styles.macroHeaderRow
-                }
-              >
-                <Text
-                  style={
-                    styles.label
-                  }
-                >
-                  PROTEIN
-                </Text>
-
-                <Text
-                  style={
-                    styles.macroSummary
-                  }
-                >
-                  {totalProtein} /{' '}
-                  {proteinTarget}g
-                </Text>
-              </View>
-
-              <View
-                style={
-                  styles.macroProgressTrack
-                }
-              >
-                <View
-                  style={[
-                    styles.macroProgressFill,
-                    {
-                      width: `${proteinProgress}%`,
-                    },
-                  ]}
-                />
-              </View>
             </View>
 
-            <View
+            <Text
               style={
-                styles.macroBlock
+                styles.caloriePercent
               }
             >
-              <View
-                style={
-                  styles.macroHeaderRow
-                }
-              >
-                <Text
-                  style={
-                    styles.label
-                  }
-                >
-                  CARBS
-                </Text>
-
-                <Text
-                  style={
-                    styles.macroSummary
-                  }
-                >
-                  {totalCarbs} /{' '}
-                  {carbTarget}g
-                </Text>
-              </View>
-
-              <View
-                style={
-                  styles.macroProgressTrack
-                }
-              >
-                <View
-                  style={[
-                    styles.macroProgressFill,
-                    {
-                      width: `${carbProgress}%`,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-
-            <View
-              style={
-                styles.macroBlock
-              }
-            >
-              <View
-                style={
-                  styles.macroHeaderRow
-                }
-              >
-                <Text
-                  style={
-                    styles.label
-                  }
-                >
-                  FAT
-                </Text>
-
-                <Text
-                  style={
-                    styles.macroSummary
-                  }
-                >
-                  {totalFat} /{' '}
-                  {fatTarget}g
-                </Text>
-              </View>
-
-              <View
-                style={
-                  styles.macroProgressTrack
-                }
-              >
-                <View
-                  style={[
-                    styles.macroProgressFill,
-                    {
-                      width: `${fatProgress}%`,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          </View>
-
-          <View
-            style={
-              styles.mealsSection
-            }
-          >
-            <View
-              style={
-                styles.mealsHeader
-              }
-            >
-              <View>
-                <Text
-                  style={
-                    styles.mealsTitle
-                  }
-                >
-                  Today's Meals
-                </Text>
-
-                <Text
-                  style={
-                    styles.mealsSubtitle
-                  }
-                >
-                  Tap a meal to add food
-                </Text>
-              </View>
-
-              <Text
-                style={
-                  styles.mealsTotal
-                }
-              >
-                {foodEntries.length}{' '}
-                {foodEntries.length ===
-                1
-                  ? 'item'
-                  : 'items'}
-              </Text>
-            </View>
-
-            <View
-              style={
-                styles.mealSummaryList
-              }
-            >
-              {mealSummaries.map(
-                ({
-                  meal,
-                  calories:
-                    mealCalories,
-                  entryCount,
-                }) => (
-                  <Pressable
-                    key={meal}
-                    onPress={() =>
-                      openFoodModal(
-                        meal
-                      )
-                    }
-                    style={({
-                      pressed,
-                    }) => [
-                      styles.mealSummaryRow,
-
-                      pressed &&
-                        styles.mealSummaryPressed,
-                    ]}
-                  >
-                    <View
-                      style={
-                        styles.mealSummaryLeft
-                      }
-                    >
-                      <View
-                        style={[
-                          styles.mealStatusDot,
-
-                          entryCount >
-                            0 &&
-                            styles.mealStatusDotLogged,
-                        ]}
-                      />
-
-                      <View>
-                        <Text
-                          style={
-                            styles.mealSummaryName
-                          }
-                        >
-                          {meal}
-                        </Text>
-
-                        <Text
-                          style={
-                            styles.mealSummaryItems
-                          }
-                        >
-                          {entryCount >
-                          0
-                            ? `${entryCount} ${
-                                entryCount ===
-                                1
-                                  ? 'item'
-                                  : 'items'
-                              } logged`
-                            : 'Nothing logged'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View
-                      style={
-                        styles.mealSummaryRight
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.mealSummaryCalories
-                        }
-                      >
-                        {
-                          mealCalories
-                        }
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.mealSummaryUnit
-                        }
-                      >
-                        kcal
-                      </Text>
-                    </View>
-                  </Pressable>
-                )
+              {Math.round(
+                (totalCalories /
+                  Math.max(
+                    calorieTarget,
+                    1
+                  )) *
+                  100
               )}
-            </View>
+              %
+            </Text>
           </View>
         </AppCard>
 
@@ -1074,13 +1046,186 @@ export default function TodayScreen() {
               styles.cardHeader
             }
           >
-            <Text
-              style={
-                styles.cardTitle
+            <View>
+              <Text
+                style={
+                  styles.cardTitle
+                }
+              >
+                Today's Meals
+              </Text>
+
+              <Text
+                style={
+                  styles.cardSubtitle
+                }
+              >
+                Tap a meal to add food
+              </Text>
+            </View>
+
+            <Pressable
+              onPress={
+                goToFood
               }
+              hitSlop={12}
             >
-              Today's Workout
-            </Text>
+              <Text
+                style={
+                  styles.accentText
+                }
+              >
+                SEE ALL
+              </Text>
+            </Pressable>
+          </View>
+
+          <View
+            style={
+              styles.mealSummaryList
+            }
+          >
+            {mealSummaries.map(
+              ({
+                meal,
+                calories:
+                  mealCalories,
+                entryCount,
+              }) => (
+                <Pressable
+                  key={meal}
+                  onPress={() =>
+                    openFoodModal(
+                      meal
+                    )
+                  }
+                  style={({
+                    pressed,
+                  }) => [
+                    styles.mealSummaryRow,
+
+                    pressed &&
+                      styles.mealSummaryPressed,
+                  ]}
+                >
+                  <View
+                    style={
+                      styles.mealIcon
+                    }
+                  >
+                    <Ionicons
+                      name={
+                        meal ===
+                        'Breakfast'
+                          ? 'sunny-outline'
+                          : meal ===
+                              'Lunch'
+                            ? 'restaurant-outline'
+                            : meal ===
+                                'Dinner'
+                              ? 'moon-outline'
+                              : 'cafe-outline'
+                      }
+                      size={18}
+                      color={
+                        entryCount >
+                        0
+                          ? colors.primary
+                          : colors.textSecondary
+                      }
+                    />
+                  </View>
+
+                  <View
+                    style={
+                      styles.mealSummaryCenter
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.mealSummaryName
+                      }
+                    >
+                      {meal}
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.mealSummaryItems
+                      }
+                    >
+                      {entryCount >
+                      0
+                        ? `${entryCount} ${
+                            entryCount ===
+                            1
+                              ? 'item'
+                              : 'items'
+                          } logged`
+                        : 'Nothing logged'}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.mealSummaryRight
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.mealSummaryCalories
+                      }
+                    >
+                      {
+                        mealCalories
+                      }
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.mealSummaryUnit
+                      }
+                    >
+                      kcal
+                    </Text>
+                  </View>
+
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={
+                      colors.textSecondary
+                    }
+                  />
+                </Pressable>
+              )
+            )}
+          </View>
+        </AppCard>
+
+        <AppCard>
+          <View
+            style={
+              styles.cardHeader
+            }
+          >
+            <View>
+              <Text
+                style={
+                  styles.cardTitle
+                }
+              >
+                Today's Workout
+              </Text>
+
+              <Text
+                style={
+                  styles.cardSubtitle
+                }
+              >
+                Move with purpose
+              </Text>
+            </View>
 
             <Pressable
               onPress={
@@ -1106,196 +1251,264 @@ export default function TodayScreen() {
             />
           ) : activeWorkoutIsToday &&
             activeWorkout ? (
-            <>
+            <Pressable
+              onPress={
+                goToWorkout
+              }
+              style={({
+                pressed,
+              }) => [
+                styles.workoutFeature,
+
+                pressed &&
+                  styles.featurePressed,
+              ]}
+            >
               <View
                 style={
-                  styles.statusRow
+                  styles.workoutIconBox
+                }
+              >
+                <Ionicons
+                  name="barbell-outline"
+                  size={25}
+                  color={
+                    colors.background
+                  }
+                />
+              </View>
+
+              <View
+                style={
+                  styles.workoutFeatureContent
                 }
               >
                 <View
                   style={
-                    styles.statusIndicator
+                    styles.statusRow
                   }
-                />
+                >
+                  <View
+                    style={
+                      styles.statusIndicator
+                    }
+                  />
+
+                  <Text
+                    style={
+                      styles.statusText
+                    }
+                  >
+                    IN PROGRESS
+                  </Text>
+                </View>
 
                 <Text
                   style={
-                    styles.statusText
+                    styles.workoutName
+                  }
+                  numberOfLines={
+                    1
                   }
                 >
-                  IN PROGRESS
+                  {
+                    activeWorkout.name
+                  }
+                </Text>
+
+                <Text
+                  style={
+                    styles.workoutMeta
+                  }
+                >
+                  {
+                    activeExerciseCount
+                  }{' '}
+                  exercises ·{' '}
+                  {
+                    activeSetCount
+                  }{' '}
+                  sets
                 </Text>
               </View>
 
-              <Text
-                style={
-                  styles.workoutName
-                }
-              >
-                {
-                  activeWorkout.name
-                }
-              </Text>
-
               <View
                 style={
-                  styles.workoutStatsRow
+                  styles.chevronCircle
                 }
               >
-                <View
-                  style={
-                    styles.workoutStat
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={
+                    colors.text
                   }
-                >
-                  <Text
-                    style={
-                      styles.workoutStatValue
-                    }
-                  >
-                    {
-                      activeExerciseCount
-                    }
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.workoutStatLabel
-                    }
-                  >
-                    Exercises
-                  </Text>
-                </View>
-
-                <View
-                  style={
-                    styles.workoutStat
-                  }
-                >
-                  <Text
-                    style={
-                      styles.workoutStatValue
-                    }
-                  >
-                    {
-                      activeSetCount
-                    }
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.workoutStatLabel
-                    }
-                  >
-                    Sets
-                  </Text>
-                </View>
+                />
               </View>
-            </>
+            </Pressable>
           ) : todaysCompletedWorkout ? (
-            <>
+            <Pressable
+              onPress={
+                goToWorkout
+              }
+              style={({
+                pressed,
+              }) => [
+                styles.workoutFeature,
+
+                pressed &&
+                  styles.featurePressed,
+              ]}
+            >
+              <View
+                style={[
+                  styles.workoutIconBox,
+                  styles.workoutIconBoxComplete,
+                ]}
+              >
+                <Ionicons
+                  name="checkmark"
+                  size={26}
+                  color={
+                    colors.background
+                  }
+                />
+              </View>
+
               <View
                 style={
-                  styles.statusRow
+                  styles.workoutFeatureContent
                 }
               >
                 <View
                   style={
-                    styles.statusIndicator
+                    styles.statusRow
                   }
-                />
+                >
+                  <View
+                    style={
+                      styles.statusIndicator
+                    }
+                  />
+
+                  <Text
+                    style={
+                      styles.statusText
+                    }
+                  >
+                    COMPLETED
+                  </Text>
+                </View>
 
                 <Text
                   style={
-                    styles.statusText
+                    styles.workoutName
+                  }
+                  numberOfLines={
+                    1
                   }
                 >
-                  COMPLETED
+                  {
+                    todaysCompletedWorkout.name
+                  }
+                </Text>
+
+                <Text
+                  style={
+                    styles.workoutMeta
+                  }
+                >
+                  {
+                    todaysCompletedWorkout.exerciseCount
+                  }{' '}
+                  exercises ·{' '}
+                  {
+                    todaysCompletedWorkout.setCount
+                  }{' '}
+                  sets
                 </Text>
               </View>
 
-              <Text
+              <View
                 style={
-                  styles.workoutName
+                  styles.chevronCircle
                 }
               >
-                {
-                  todaysCompletedWorkout.name
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={
+                    colors.text
+                  }
+                />
+              </View>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={
+                openWorkoutModal
+              }
+              style={({
+                pressed,
+              }) => [
+                styles.workoutFeature,
+                styles.workoutFeatureEmpty,
+
+                pressed &&
+                  styles.featurePressed,
+              ]}
+            >
+              <View
+                style={
+                  styles.workoutIconBox
                 }
-              </Text>
+              >
+                <Ionicons
+                  name="barbell-outline"
+                  size={25}
+                  color={
+                    colors.background
+                  }
+                />
+              </View>
 
               <View
                 style={
-                  styles.workoutStatsRow
+                  styles.workoutFeatureContent
                 }
               >
-                <View
+                <Text
                   style={
-                    styles.workoutStat
+                    styles.workoutName
                   }
                 >
-                  <Text
-                    style={
-                      styles.workoutStatValue
-                    }
-                  >
-                    {
-                      todaysCompletedWorkout.exerciseCount
-                    }
-                  </Text>
+                  Start workout
+                </Text>
 
-                  <Text
-                    style={
-                      styles.workoutStatLabel
-                    }
-                  >
-                    Exercises
-                  </Text>
-                </View>
-
-                <View
+                <Text
                   style={
-                    styles.workoutStat
+                    styles.workoutMeta
                   }
                 >
-                  <Text
-                    style={
-                      styles.workoutStatValue
-                    }
-                  >
-                    {
-                      todaysCompletedWorkout.setCount
-                    }
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.workoutStatLabel
-                    }
-                  >
-                    Sets
-                  </Text>
-                </View>
+                  Track your training
+                  session
+                </Text>
               </View>
-            </>
-          ) : (
-            <>
-              <Text
-                style={
-                  styles.emptyTitle
-                }
-              >
-                No workout logged
-              </Text>
 
-              <Text
+              <View
                 style={
-                  styles.secondaryText
+                  styles.chevronCircle
                 }
               >
-                Start a workout when
-                you're ready to train.
-              </Text>
-            </>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={
+                    colors.text
+                  }
+                />
+              </View>
+            </Pressable>
           )}
         </AppCard>
 
@@ -1305,13 +1518,24 @@ export default function TodayScreen() {
               styles.cardHeader
             }
           >
-            <Text
-              style={
-                styles.cardTitle
-              }
-            >
-              Weight Progress
-            </Text>
+            <View>
+              <Text
+                style={
+                  styles.cardTitle
+                }
+              >
+                Weight
+              </Text>
+
+              <Text
+                style={
+                  styles.cardSubtitle
+                }
+              >
+                Keep moving toward your
+                goal
+              </Text>
+            </View>
 
             <Pressable
               onPress={
@@ -1338,41 +1562,88 @@ export default function TodayScreen() {
             />
           ) : currentWeight ===
             null ? (
-            <>
-              <Text
-                style={
-                  styles.emptyTitle
-                }
-              >
-                No weight logged
-              </Text>
+            <Pressable
+              onPress={
+                openWeightModal
+              }
+              style={({
+                pressed,
+              }) => [
+                styles.weightFeature,
 
-              <Text
-                style={
-                  styles.secondaryText
-                }
-              >
-                Log your weight to
-                begin tracking your
-                progress.
-              </Text>
-            </>
-          ) : (
-            <>
+                pressed &&
+                  styles.featurePressed,
+              ]}
+            >
               <View
                 style={
-                  styles.weightSummaryRow
+                  styles.weightIconBox
                 }
               >
-                <View>
-                  <Text
-                    style={
-                      styles.label
-                    }
-                  >
-                    CURRENT
-                  </Text>
+                <Ionicons
+                  name="scale-outline"
+                  size={22}
+                  color={
+                    colors.primary
+                  }
+                />
+              </View>
 
+              <View
+                style={
+                  styles.weightFeatureContent
+                }
+              >
+                <Text
+                  style={
+                    styles.weightEmptyTitle
+                  }
+                >
+                  Log your first weight
+                </Text>
+
+                <Text
+                  style={
+                    styles.weightMeta
+                  }
+                >
+                  Start tracking your
+                  progress
+                </Text>
+              </View>
+
+              <Ionicons
+                name="add"
+                size={22}
+                color={
+                  colors.primary
+                }
+              />
+            </Pressable>
+          ) : (
+            <View
+              style={
+                styles.weightFeature
+              }
+            >
+              <View
+                style={
+                  styles.weightMain
+                }
+              >
+                <Text
+                  style={
+                    styles.weightCurrentLabel
+                  }
+                >
+                  CURRENT
+                </Text>
+
+                <View
+                  style={
+                    styles.weightValueRow
+                  }
+                >
                   <Text
                     style={
                       styles.weightValue
@@ -1380,67 +1651,82 @@ export default function TodayScreen() {
                   >
                     {
                       currentWeight
-                    }{' '}
+                    }
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.weightUnitText
+                    }
+                  >
                     lbs
                   </Text>
                 </View>
 
-                {goalWeight !==
+                {weightToGoal !==
                   null && (
                   <View
                     style={
-                      styles.goalWeightBlock
+                      styles.goalProgressRow
                     }
                   >
-                    <Text
-                      style={
-                        styles.label
+                    <Ionicons
+                      name="trending-down-outline"
+                      size={15}
+                      color={
+                        colors.primary
                       }
-                    >
-                      GOAL
-                    </Text>
+                    />
 
                     <Text
                       style={
-                        styles.goalWeightValue
+                        styles.goalProgressText
                       }
                     >
-                      {
-                        goalWeight
-                      }{' '}
-                      lbs
+                      {weightToGoal.toFixed(
+                        1
+                      )}{' '}
+                      lbs from goal
                     </Text>
                   </View>
                 )}
               </View>
 
-              {weightToGoal !==
+              {goalWeight !==
                 null && (
                 <View
                   style={
-                    styles.weightRemainingBox
+                    styles.goalWeightPanel
                   }
                 >
                   <Text
                     style={
-                      styles.weightRemainingValue
+                      styles.goalWeightLabel
                     }
                   >
-                    {weightToGoal.toFixed(
-                      1
-                    )}
+                    GOAL
                   </Text>
 
                   <Text
                     style={
-                      styles.weightRemainingLabel
+                      styles.goalWeightValue
                     }
                   >
-                    lbs from goal
+                    {
+                      goalWeight
+                    }
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.goalWeightUnit
+                    }
+                  >
+                    lbs
                   </Text>
                 </View>
               )}
-            </>
+            </View>
           )}
         </AppCard>
       </ScrollView>
@@ -1634,7 +1920,7 @@ export default function TodayScreen() {
             name={
               fabOpen
                 ? 'close'
-                : 'add'
+                                : 'add'
             }
             size={30}
             color={
@@ -2445,35 +2731,95 @@ const styles =
       paddingHorizontal:
         spacing.lg,
       paddingBottom: 180,
-      gap: spacing.md,
+      gap: 14,
     },
 
     header: {
-      marginBottom:
-        spacing.sm,
+      marginBottom: 2,
+      gap: 14,
+    },
+
+    brandRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+
+    brandMark: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor:
+        colors.border,
+      backgroundColor:
+        colors.surface,
+    },
+
+    brandMarkText: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 0.7,
+    },
+
+    brandCopy: {
+      flex: 1,
+      gap: 1,
+    },
+
+    brandName: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 2.1,
+    },
+
+    brandTagline: {
+      color:
+        colors.textSecondary,
+      fontSize: 8,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
+
+    todayHeadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      gap: spacing.md,
+    },
+
+    todayBadge: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor:
+        colors.surface,
+      borderWidth: 1,
+      borderColor:
+        colors.border,
     },
 
     screenTitle: {
       color: colors.text,
-      fontSize:
-        fontSize.screenTitle,
-      fontWeight: '700',
+      fontSize: 36,
+      lineHeight: 40,
+      fontWeight: '800',
+      letterSpacing: -1.2,
     },
 
     dateText: {
       color:
         colors.textSecondary,
-      fontSize:
-        fontSize.body,
-      marginTop:
-        spacing.xs,
-    },
-
-    cardTitle: {
-      color: colors.text,
-      fontSize:
-        fontSize.title,
-      fontWeight: '600',
+      fontSize: 13,
+      fontWeight: '500',
+      marginTop: 2,
     },
 
     cardHeader: {
@@ -2482,6 +2828,424 @@ const styles =
         'space-between',
       alignItems: 'center',
       gap: spacing.md,
+    },
+
+    cardTitle: {
+      color: colors.text,
+      fontSize: 19,
+      fontWeight: '700',
+      letterSpacing: -0.3,
+    },
+
+    cardSubtitle: {
+      color:
+        colors.textSecondary,
+      fontSize: 11,
+      marginTop: 2,
+    },
+
+    accentText: {
+      color:
+        colors.primary,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.2,
+    },
+
+    nutritionDashboard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingTop:
+        spacing.xs,
+    },
+
+    calorieRingWrap: {
+      width: 150,
+      height: 150,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    calorieRingContent: {
+      position: 'absolute',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    calorieRingValue: {
+      color: colors.text,
+      fontSize: 30,
+      lineHeight: 34,
+      fontWeight: '800',
+      letterSpacing: -1,
+    },
+
+    calorieRingTarget: {
+      color:
+        colors.textSecondary,
+      fontSize: 10,
+      fontWeight: '600',
+      marginTop: 1,
+    },
+
+    calorieRingUnit: {
+      color:
+        colors.textSecondary,
+      fontSize: 9,
+      fontWeight: '600',
+      marginTop: 1,
+    },
+
+    macroPanel: {
+      flex: 1,
+      gap: 15,
+    },
+
+    macroItem: {
+      gap: 6,
+    },
+
+    macroLabelRow: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+
+    macroName: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+
+    macroNumbers: {
+      color:
+        colors.textSecondary,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+
+    macroTrack: {
+      height: 5,
+      borderRadius: 3,
+      backgroundColor:
+        colors.surfaceSecondary,
+      overflow: 'hidden',
+    },
+
+    macroFill: {
+      height: '100%',
+      borderRadius: 3,
+      backgroundColor:
+        colors.primary,
+    },
+
+    calorieFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      paddingTop:
+        spacing.sm,
+      marginTop: 2,
+      borderTopWidth: 1,
+      borderTopColor:
+        colors.border,
+    },
+
+    calorieStatus: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+
+    calorieStatusText: {
+      color:
+        colors.textSecondary,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+
+    calorieStatusOver: {
+      color:
+        colors.warning,
+    },
+
+    caloriePercent: {
+      color:
+        colors.primary,
+      fontSize: 11,
+      fontWeight: '800',
+    },
+
+    mealSummaryList: {
+      gap: 7,
+    },
+
+    mealSummaryRow: {
+      minHeight: 54,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 10,
+    },
+
+    mealSummaryPressed: {
+      opacity: 0.78,
+    },
+
+    mealIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor:
+        colors.surface,
+    },
+
+    mealSummaryCenter: {
+      flex: 1,
+    },
+
+    mealSummaryName: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+
+    mealSummaryItems: {
+      color:
+        colors.textSecondary,
+      fontSize: 10,
+      marginTop: 1,
+    },
+
+    mealSummaryRight: {
+      alignItems:
+        'flex-end',
+    },
+
+    mealSummaryCalories: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+
+    mealSummaryUnit: {
+      color:
+        colors.textSecondary,
+      fontSize: 9,
+      marginTop: 1,
+    },
+
+    workoutFeature: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 78,
+      padding: 12,
+      gap: 12,
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius: 16,
+    },
+
+    workoutFeatureEmpty: {
+      minHeight: 72,
+    },
+
+    featurePressed: {
+      opacity: 0.78,
+    },
+
+    workoutIconBox: {
+      width: 48,
+      height: 48,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor:
+        colors.primary,
+    },
+
+    workoutIconBoxComplete: {
+      backgroundColor:
+        colors.primary,
+    },
+
+    workoutFeatureContent: {
+      flex: 1,
+      gap: 3,
+    },
+
+    statusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+
+    statusIndicator: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor:
+        colors.primary,
+    },
+
+    statusText: {
+      color:
+        colors.primary,
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+
+    workoutName: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+
+    workoutMeta: {
+      color:
+        colors.textSecondary,
+      fontSize: 11,
+    },
+
+    chevronCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor:
+        colors.surface,
+    },
+
+    weightFeature: {
+      minHeight: 88,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor:
+        colors.surfaceSecondary,
+      borderRadius: 16,
+      padding: 14,
+      gap: 12,
+    },
+
+    weightIconBox: {
+      width: 42,
+      height: 42,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor:
+        colors.surface,
+    },
+
+    weightFeatureContent: {
+      flex: 1,
+    },
+
+    weightEmptyTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+
+    weightMeta: {
+      color:
+        colors.textSecondary,
+      fontSize: 11,
+      marginTop: 2,
+    },
+
+    weightMain: {
+      flex: 1,
+    },
+
+    weightCurrentLabel: {
+      color:
+        colors.textSecondary,
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 1,
+    },
+
+    weightValueRow: {
+      flexDirection: 'row',
+      alignItems:
+        'baseline',
+      marginTop: 1,
+    },
+
+    weightValue: {
+      color: colors.text,
+      fontSize: 30,
+      lineHeight: 34,
+      fontWeight: '800',
+      letterSpacing: -0.8,
+    },
+
+    weightUnitText: {
+      color:
+        colors.textSecondary,
+      fontSize: 11,
+      fontWeight: '600',
+      marginLeft: 4,
+    },
+
+    goalProgressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 3,
+    },
+
+    goalProgressText: {
+      color:
+        colors.primary,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+
+    goalWeightPanel: {
+      minWidth: 68,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor:
+        colors.surface,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+
+    goalWeightLabel: {
+      color:
+        colors.textSecondary,
+      fontSize: 8,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+
+    goalWeightValue: {
+      color:
+        colors.primary,
+      fontSize: 20,
+      fontWeight: '800',
+      marginTop: 1,
+    },
+
+    goalWeightUnit: {
+      color:
+        colors.textSecondary,
+      fontSize: 9,
     },
 
     label: {
@@ -2493,383 +3257,27 @@ const styles =
       letterSpacing: 1,
     },
 
-    calorieRow: {
-      flexDirection: 'row',
-      alignItems:
-        'baseline',
-      marginTop:
-        spacing.xs,
-    },
-
-    calorieValue: {
-      color: colors.text,
-      fontSize: 36,
-      fontWeight: '700',
-    },
-
-    calorieTarget: {
-      color:
-        colors.textSecondary,
-      fontSize:
-        fontSize.body,
-    },
-
-    progressTrack: {
-      height: 8,
-      backgroundColor:
-        colors.surfaceSecondary,
-      borderRadius:
-        borderRadius.xl,
-      marginTop:
-        spacing.sm,
-      overflow: 'hidden',
-    },
-
-    progressFill: {
-      height: '100%',
-      backgroundColor:
-        colors.primary,
-      borderRadius:
-        borderRadius.xl,
-    },
-
-    progressFillOver: {
-      backgroundColor:
-        colors.warning,
-    },
-
-    calorieSummaryRow: {
-      flexDirection: 'row',
-      justifyContent:
-        'space-between',
-      marginTop:
-        spacing.sm,
-    },
-
-    progressText: {
-      color:
-        colors.primary,
-      fontSize:
-        fontSize.small,
-      fontWeight: '700',
-    },
-
-    overTargetText: {
-      color:
-        colors.warning,
-    },
-
-    macroList: {
-      gap: spacing.md,
-    },
-
-    macroBlock: {
-      gap: spacing.sm,
-    },
-
-    macroHeaderRow: {
-      flexDirection: 'row',
-      justifyContent:
-        'space-between',
-    },
-
-    macroSummary: {
-      color: colors.text,
-      fontSize:
-        fontSize.small,
-      fontWeight: '600',
-    },
-
-    macroProgressTrack: {
-      height: 6,
-      backgroundColor:
-        colors.surfaceSecondary,
-      borderRadius:
-        borderRadius.xl,
-      overflow: 'hidden',
-    },
-
-    macroProgressFill: {
-      height: '100%',
-      backgroundColor:
-        colors.primary,
-    },
-
-    mealsSection: {
-      borderTopColor:
-        colors.border,
-      borderTopWidth: 1,
-      paddingTop:
-        spacing.md,
-      gap: spacing.md,
-    },
-
-    mealsHeader: {
-      flexDirection: 'row',
-      justifyContent:
-        'space-between',
-      alignItems: 'center',
-      gap: spacing.md,
-    },
-
-    mealsTitle: {
-      color: colors.text,
-      fontSize:
-        fontSize.subtitle,
-      fontWeight: '700',
-    },
-
-    mealsSubtitle: {
-      color:
-        colors.textSecondary,
-      fontSize:
-        fontSize.small,
-      marginTop:
-        spacing.xs,
-    },
-
-    mealsTotal: {
-      color:
-        colors.textSecondary,
-      fontSize:
-        fontSize.small,
-      fontWeight: '600',
-    },
-
-    mealSummaryList: {
-      gap: spacing.sm,
-    },
-
-    mealSummaryRow: {
-      minHeight: 62,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent:
-        'space-between',
-      backgroundColor:
-        colors.surfaceSecondary,
-      borderColor:
-        colors.border,
-      borderWidth: 1,
-      borderRadius:
-        borderRadius.md,
-      paddingHorizontal:
-        spacing.md,
-      paddingVertical:
-        spacing.sm,
-      gap: spacing.md,
-    },
-
-    mealSummaryPressed: {
-      opacity: 0.8,
-    },
-
-    mealSummaryLeft: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-
-    mealStatusDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor:
-        colors.border,
-    },
-
-    mealStatusDotLogged: {
-      backgroundColor:
-        colors.primary,
-    },
-
-    mealSummaryName: {
-      color: colors.text,
-      fontSize:
-        fontSize.body,
-      fontWeight: '600',
-    },
-
-    mealSummaryItems: {
-      color:
-        colors.textSecondary,
-      fontSize:
-        fontSize.small,
-      marginTop: 2,
-    },
-
-    mealSummaryRight: {
-      alignItems:
-        'flex-end',
-    },
-
-    mealSummaryCalories: {
-      color: colors.text,
-      fontSize:
-        fontSize.body,
-      fontWeight: '700',
-    },
-
-    mealSummaryUnit: {
-      color:
-        colors.textSecondary,
-      fontSize: 11,
-    },
-
-    accentText: {
-      color:
-        colors.primary,
-      fontSize:
-        fontSize.small,
-      fontWeight: '700',
-      letterSpacing: 1,
-    },
-
-    emptyTitle: {
-      color: colors.text,
-      fontSize:
-        fontSize.subtitle,
-      fontWeight: '600',
-    },
-
     secondaryText: {
       color:
         colors.textSecondary,
       fontSize:
         fontSize.body,
     },
-
-    statusRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-
-    statusIndicator: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor:
-        colors.primary,
-    },
-
-    statusText: {
-      color:
-        colors.primary,
-      fontSize:
-        fontSize.small,
-      fontWeight: '700',
-    },
-
-    workoutName: {
-      color: colors.text,
-      fontSize:
-        fontSize.subtitle,
-      fontWeight: '700',
-    },
-
-    workoutStatsRow: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
-
-    workoutStat: {
-      flex: 1,
-      backgroundColor:
-        colors.surfaceSecondary,
-      borderRadius:
-        borderRadius.md,
-      padding: spacing.md,
-    },
-
-    workoutStatValue: {
-      color: colors.text,
-      fontSize:
-        fontSize.title,
-      fontWeight: '700',
-    },
-
-    workoutStatLabel: {
-      color:
-        colors.textSecondary,
-      fontSize:
-        fontSize.small,
-      marginTop:
-        spacing.xs,
-    },
-
-    weightSummaryRow: {
-      flexDirection: 'row',
-      justifyContent:
-        'space-between',
-      alignItems:
-        'flex-end',
-    },
-
-    weightValue: {
-      color: colors.text,
-      fontSize: 36,
-      fontWeight: '700',
-    },
-
-    goalWeightBlock: {
-      alignItems:
-        'flex-end',
-    },
-
-    goalWeightValue: {
-      color:
-        colors.primary,
-      fontSize:
-        fontSize.subtitle,
-      fontWeight: '700',
-    },
-
-    weightRemainingBox: {
-      backgroundColor:
-        colors.surfaceSecondary,
-      borderRadius:
-        borderRadius.md,
-      padding: spacing.md,
-      flexDirection: 'row',
-      alignItems:
-        'baseline',
-      gap: spacing.sm,
-    },
-
-    weightRemainingValue: {
-      color:
-        colors.primary,
-      fontSize:
-        fontSize.title,
-      fontWeight: '700',
-    },
-
-    weightRemainingLabel: {
-      color:
-        colors.textSecondary,
-      fontSize:
-        fontSize.body,
-    },
-
-    fabBackdrop: {
+        fabBackdrop: {
       ...StyleSheet.absoluteFill,
       backgroundColor:
-        'rgba(0, 0, 0, 0.18)',
+        'rgba(0, 0, 0, 0.22)',
     },
 
     fabContainer: {
       position: 'absolute',
       right: spacing.lg,
-      alignItems:
-        'flex-end',
+      alignItems: 'flex-end',
       gap: spacing.sm,
     },
 
     fabMenu: {
-      alignItems:
-        'flex-end',
+      alignItems: 'flex-end',
       gap: spacing.sm,
       marginBottom:
         spacing.xs,
@@ -2986,7 +3394,7 @@ const styles =
     modalOverlay: {
       flex: 1,
       backgroundColor:
-        'rgba(0, 0, 0, 0.75)',
+        'rgba(0, 0, 0, 0.78)',
       alignItems: 'center',
       justifyContent:
         'center',
