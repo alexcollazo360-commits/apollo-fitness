@@ -2457,7 +2457,7 @@ export default function FoodScreen() {
                             }
                           >
                             {
-                              historyDay.totalCalories
+                              historyDay.calories
                             }{' '}
                             kcal
                           </Text>
@@ -2471,16 +2471,11 @@ export default function FoodScreen() {
                             2
                           }
                         >
-                          {historyDay.entries
-                            .map(
-                              (
-                                entry
-                              ) =>
-                                entry.name
-                            )
-                            .join(
-                              ' · '
-                            )}
+                          {historyDay.entryCount}{' '}
+                          {historyDay.entryCount ===
+                          1
+                            ? 'item'
+                            : 'items'}
                         </Text>
 
                         <Text
@@ -2490,8 +2485,8 @@ export default function FoodScreen() {
                         >
                           {isCopying
                             ? 'Copying...'
-                            : `Copy ${historyDay.entries.length} ${
-                                historyDay.entries.length ===
+                            : `Copy ${historyDay.entryCount} ${
+                                historyDay.entryCount ===
                                 1
                                   ? 'item'
                                   : 'items'
