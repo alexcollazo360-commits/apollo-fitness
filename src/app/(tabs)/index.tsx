@@ -772,8 +772,8 @@ export default function TodayScreen() {
               }
             >
               <Svg
-                width={150}
-                height={150}
+                width={124}
+                height={124}
                 viewBox="0 0 150 150"
               >
                 <Circle
@@ -848,7 +848,7 @@ export default function TodayScreen() {
                 styles.macroPanel
               }
             >
-                            <View
+              <View
                 style={
                   styles.macroItem
                 }
@@ -1126,7 +1126,7 @@ export default function TodayScreen() {
                               ? 'moon-outline'
                               : 'cafe-outline'
                       }
-                      size={18}
+                      size={17}
                       color={
                         entryCount >
                         0
@@ -1192,7 +1192,7 @@ export default function TodayScreen() {
 
                   <Ionicons
                     name="chevron-forward"
-                    size={16}
+                    size={15}
                     color={
                       colors.textSecondary
                     }
@@ -1271,7 +1271,7 @@ export default function TodayScreen() {
               >
                 <Ionicons
                   name="barbell-outline"
-                  size={25}
+                  size={23}
                   color={
                     colors.background
                   }
@@ -1339,7 +1339,7 @@ export default function TodayScreen() {
               >
                 <Ionicons
                   name="chevron-forward"
-                  size={18}
+                  size={17}
                   color={
                     colors.text
                   }
@@ -1368,7 +1368,7 @@ export default function TodayScreen() {
               >
                 <Ionicons
                   name="checkmark"
-                  size={26}
+                  size={24}
                   color={
                     colors.background
                   }
@@ -1436,7 +1436,7 @@ export default function TodayScreen() {
               >
                 <Ionicons
                   name="chevron-forward"
-                  size={18}
+                  size={17}
                   color={
                     colors.text
                   }
@@ -1465,7 +1465,7 @@ export default function TodayScreen() {
               >
                 <Ionicons
                   name="barbell-outline"
-                  size={25}
+                  size={23}
                   color={
                     colors.background
                   }
@@ -1502,7 +1502,7 @@ export default function TodayScreen() {
               >
                 <Ionicons
                   name="chevron-forward"
-                  size={18}
+                  size={17}
                   color={
                     colors.text
                   }
@@ -1582,7 +1582,7 @@ export default function TodayScreen() {
               >
                 <Ionicons
                   name="scale-outline"
-                  size={22}
+                  size={21}
                   color={
                     colors.primary
                   }
@@ -1614,7 +1614,7 @@ export default function TodayScreen() {
 
               <Ionicons
                 name="add"
-                size={22}
+                size={21}
                 color={
                   colors.primary
                 }
@@ -1672,7 +1672,7 @@ export default function TodayScreen() {
                   >
                     <Ionicons
                       name="trending-down-outline"
-                      size={15}
+                      size={14}
                       color={
                         colors.primary
                       }
@@ -1920,7 +1920,7 @@ export default function TodayScreen() {
             name={
               fabOpen
                 ? 'close'
-                                : 'add'
+                : 'add'
             }
             size={30}
             color={
@@ -2065,8 +2065,7 @@ export default function TodayScreen() {
                   keyboardType="numeric"
                 />
               </View>
-
-              <View
+                            <View
                 style={
                   styles.macroInputs
                 }
@@ -2731,23 +2730,23 @@ const styles =
       paddingHorizontal:
         spacing.lg,
       paddingBottom: 180,
-      gap: 14,
+      gap: 10,
     },
 
     header: {
       marginBottom: 2,
-      gap: 14,
+      gap: 8,
     },
 
     brandRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: 9,
     },
 
     brandMark: {
-      width: 34,
-      height: 34,
+      width: 32,
+      height: 32,
       borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
@@ -2760,9 +2759,9 @@ const styles =
 
     brandMarkText: {
       color: colors.text,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '800',
-      letterSpacing: 0.7,
+      letterSpacing: 0.8,
     },
 
     brandCopy: {
@@ -2774,7 +2773,7 @@ const styles =
       color: colors.text,
       fontSize: 12,
       fontWeight: '800',
-      letterSpacing: 2.1,
+      letterSpacing: 2.2,
     },
 
     brandTagline: {
@@ -2782,7 +2781,7 @@ const styles =
         colors.textSecondary,
       fontSize: 8,
       fontWeight: '700',
-      letterSpacing: 1,
+      letterSpacing: 1.05,
     },
 
     todayHeadingRow: {
@@ -2794,9 +2793,9 @@ const styles =
     },
 
     todayBadge: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor:
@@ -2809,17 +2808,17 @@ const styles =
     screenTitle: {
       color: colors.text,
       fontSize: 36,
-      lineHeight: 40,
+      lineHeight: 39,
       fontWeight: '800',
-      letterSpacing: -1.2,
+      letterSpacing: -1.4,
     },
 
     dateText: {
       color:
         colors.textSecondary,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '500',
-      marginTop: 2,
+      marginTop: 1,
     },
 
     cardHeader: {
@@ -2832,37 +2831,36 @@ const styles =
 
     cardTitle: {
       color: colors.text,
-      fontSize: 19,
+      fontSize: 18,
       fontWeight: '700',
-      letterSpacing: -0.3,
+      letterSpacing: -0.35,
     },
 
     cardSubtitle: {
       color:
         colors.textSecondary,
-      fontSize: 11,
-      marginTop: 2,
+      fontSize: 10,
+      marginTop: 1,
     },
 
     accentText: {
       color:
         colors.primary,
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '800',
-      letterSpacing: 1.2,
+      letterSpacing: 1.25,
     },
 
     nutritionDashboard: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
-      paddingTop:
-        spacing.xs,
+      gap: 10,
+      paddingTop: 0,
     },
 
     calorieRingWrap: {
-      width: 150,
-      height: 150,
+      width: 124,
+      height: 124,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -2875,8 +2873,8 @@ const styles =
 
     calorieRingValue: {
       color: colors.text,
-      fontSize: 30,
-      lineHeight: 34,
+      fontSize: 26,
+      lineHeight: 29,
       fontWeight: '800',
       letterSpacing: -1,
     },
@@ -2884,7 +2882,7 @@ const styles =
     calorieRingTarget: {
       color:
         colors.textSecondary,
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '600',
       marginTop: 1,
     },
@@ -2892,18 +2890,18 @@ const styles =
     calorieRingUnit: {
       color:
         colors.textSecondary,
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '600',
       marginTop: 1,
     },
 
     macroPanel: {
       flex: 1,
-      gap: 15,
+      gap: 10,
     },
 
     macroItem: {
-      gap: 6,
+      gap: 5,
     },
 
     macroLabelRow: {
@@ -2911,19 +2909,19 @@ const styles =
       justifyContent:
         'space-between',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: 6,
     },
 
     macroName: {
       color: colors.text,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '600',
     },
 
     macroNumbers: {
       color:
         colors.textSecondary,
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '600',
     },
 
@@ -2947,9 +2945,8 @@ const styles =
       alignItems: 'center',
       justifyContent:
         'space-between',
-      paddingTop:
-        spacing.sm,
-      marginTop: 2,
+      paddingTop: 6,
+      marginTop: 0,
       borderTopWidth: 1,
       borderTopColor:
         colors.border,
@@ -2958,13 +2955,13 @@ const styles =
     calorieStatus: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 5,
     },
 
     calorieStatusText: {
       color:
         colors.textSecondary,
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '600',
     },
 
@@ -2976,24 +2973,24 @@ const styles =
     caloriePercent: {
       color:
         colors.primary,
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
     },
 
     mealSummaryList: {
-      gap: 7,
+      gap: 4,
     },
 
     mealSummaryRow: {
-      minHeight: 54,
+      minHeight: 42,
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor:
         colors.surfaceSecondary,
-      borderRadius: 14,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      gap: 10,
+      borderRadius: 13,
+      paddingHorizontal: 11,
+      paddingVertical: 4,
+      gap: 9,
     },
 
     mealSummaryPressed: {
@@ -3001,9 +2998,9 @@ const styles =
     },
 
     mealIcon: {
-      width: 34,
-      height: 34,
-      borderRadius: 11,
+      width: 29,
+      height: 29,
+      borderRadius: 9,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor:
@@ -3016,14 +3013,14 @@ const styles =
 
     mealSummaryName: {
       color: colors.text,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '600',
     },
 
     mealSummaryItems: {
       color:
         colors.textSecondary,
-      fontSize: 10,
+      fontSize: 9,
       marginTop: 1,
     },
 
@@ -3034,30 +3031,30 @@ const styles =
 
     mealSummaryCalories: {
       color: colors.text,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '700',
     },
 
     mealSummaryUnit: {
       color:
         colors.textSecondary,
-      fontSize: 9,
+      fontSize: 8,
       marginTop: 1,
     },
 
     workoutFeature: {
       flexDirection: 'row',
       alignItems: 'center',
-      minHeight: 78,
-      padding: 12,
-      gap: 12,
+      minHeight: 60,
+      padding: 8,
+      gap: 10,
       backgroundColor:
         colors.surfaceSecondary,
-      borderRadius: 16,
+      borderRadius: 15,
     },
 
     workoutFeatureEmpty: {
-      minHeight: 72,
+      minHeight: 58,
     },
 
     featurePressed: {
@@ -3065,9 +3062,9 @@ const styles =
     },
 
     workoutIconBox: {
-      width: 48,
-      height: 48,
-      borderRadius: 15,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor:
@@ -3081,7 +3078,7 @@ const styles =
 
     workoutFeatureContent: {
       flex: 1,
-      gap: 3,
+      gap: 2,
     },
 
     statusRow: {
@@ -3091,8 +3088,8 @@ const styles =
     },
 
     statusIndicator: {
-      width: 6,
-      height: 6,
+      width: 5,
+      height: 5,
       borderRadius: 3,
       backgroundColor:
         colors.primary,
@@ -3101,27 +3098,27 @@ const styles =
     statusText: {
       color:
         colors.primary,
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '800',
-      letterSpacing: 0.8,
+      letterSpacing: 0.85,
     },
 
     workoutName: {
       color: colors.text,
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '700',
     },
 
     workoutMeta: {
       color:
         colors.textSecondary,
-      fontSize: 11,
+      fontSize: 10,
     },
 
     chevronCircle: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor:
@@ -3129,20 +3126,20 @@ const styles =
     },
 
     weightFeature: {
-      minHeight: 88,
+      minHeight: 68,
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor:
         colors.surfaceSecondary,
-      borderRadius: 16,
-      padding: 14,
-      gap: 12,
+      borderRadius: 15,
+      padding: 10,
+      gap: 10,
     },
 
     weightIconBox: {
-      width: 42,
-      height: 42,
-      borderRadius: 14,
+      width: 39,
+      height: 39,
+      borderRadius: 13,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor:
@@ -3155,15 +3152,15 @@ const styles =
 
     weightEmptyTitle: {
       color: colors.text,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '700',
     },
 
     weightMeta: {
       color:
         colors.textSecondary,
-      fontSize: 11,
-      marginTop: 2,
+      fontSize: 10,
+      marginTop: 1,
     },
 
     weightMain: {
@@ -3173,7 +3170,7 @@ const styles =
     weightCurrentLabel: {
       color:
         colors.textSecondary,
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '800',
       letterSpacing: 1,
     },
@@ -3182,13 +3179,13 @@ const styles =
       flexDirection: 'row',
       alignItems:
         'baseline',
-      marginTop: 1,
+      marginTop: 0,
     },
 
     weightValue: {
       color: colors.text,
-      fontSize: 30,
-      lineHeight: 34,
+      fontSize: 26,
+      lineHeight: 29,
       fontWeight: '800',
       letterSpacing: -0.8,
     },
@@ -3196,7 +3193,7 @@ const styles =
     weightUnitText: {
       color:
         colors.textSecondary,
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '600',
       marginLeft: 4,
     },
@@ -3204,32 +3201,32 @@ const styles =
     goalProgressRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 5,
-      marginTop: 3,
+      gap: 4,
+      marginTop: 2,
     },
 
     goalProgressText: {
       color:
         colors.primary,
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '600',
     },
 
     goalWeightPanel: {
-      minWidth: 68,
+      minWidth: 64,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor:
         colors.surface,
-      borderRadius: 14,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      borderRadius: 13,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
     },
 
     goalWeightLabel: {
       color:
         colors.textSecondary,
-      fontSize: 8,
+      fontSize: 7,
       fontWeight: '800',
       letterSpacing: 0.8,
     },
@@ -3237,7 +3234,7 @@ const styles =
     goalWeightValue: {
       color:
         colors.primary,
-      fontSize: 20,
+      fontSize: 19,
       fontWeight: '800',
       marginTop: 1,
     },
@@ -3245,10 +3242,9 @@ const styles =
     goalWeightUnit: {
       color:
         colors.textSecondary,
-      fontSize: 9,
+      fontSize: 8,
     },
-
-    label: {
+        label: {
       color:
         colors.textSecondary,
       fontSize:
@@ -3263,7 +3259,8 @@ const styles =
       fontSize:
         fontSize.body,
     },
-        fabBackdrop: {
+
+    fabBackdrop: {
       ...StyleSheet.absoluteFill,
       backgroundColor:
         'rgba(0, 0, 0, 0.22)',
