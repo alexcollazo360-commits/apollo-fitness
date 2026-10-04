@@ -310,15 +310,36 @@ export default function TodayScreen() {
       new Date()
     );
 
+  const now = new Date();
+
   const formattedDate =
-    new Date().toLocaleDateString(
-      undefined,
-      {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-      }
-    );
+    now
+      .toLocaleDateString(
+        undefined,
+        {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }
+      )
+      .toUpperCase();
+
+  const currentHour =
+    now.getHours();
+
+  const greeting =
+  currentHour < 12
+    ? 'Good Morning'
+    : currentHour < 18
+      ? 'Good Afternoon'
+      : 'Good Evening';
+
+  const firstName =
+    profile?.displayName
+      ?.trim()
+      .split(/\s+/)[0] ??
+    null;
 
   const todaysCompletedWorkouts =
     workoutHistory.filter(
@@ -694,40 +715,34 @@ export default function TodayScreen() {
 
           <View
             style={
-              styles.todayHeadingRow
+              styles.greetingBlock
             }
           >
-            <View>
-              <Text
-                style={
-                  styles.screenTitle
-                }
-              >
-                Today
-              </Text>
-
-              <Text
-                style={
-                  styles.dateText
-                }
-              >
-                {formattedDate}
-              </Text>
-            </View>
-
-            <View
+            <Text
               style={
-                styles.todayBadge
+                styles.dateText
               }
             >
-              <Ionicons
-                name="pulse-outline"
-                size={18}
-                color={
-                  colors.primary
+              {formattedDate}
+            </Text>
+
+            <Text
+              style={
+                styles.greetingText
+              }
+            >
+              {greeting},
+            </Text>
+
+            {firstName ? (
+              <Text
+                style={
+                  styles.greetingName
                 }
-              />
-            </View>
+              >
+                {firstName}.
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -2784,41 +2799,35 @@ const styles =
       letterSpacing: 1.05,
     },
 
-    todayHeadingRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent:
-        'space-between',
-      gap: spacing.md,
-    },
-
-    todayBadge: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor:
-        colors.surface,
-      borderWidth: 1,
-      borderColor:
-        colors.border,
-    },
-
-    screenTitle: {
-      color: colors.text,
-      fontSize: 36,
-      lineHeight: 39,
-      fontWeight: '800',
-      letterSpacing: -1.4,
+    greetingBlock: {
+      marginTop: 14,
+      marginBottom: 8,
     },
 
     dateText: {
       color:
         colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '500',
-      marginTop: 1,
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: '700',
+      letterSpacing: 1.35,
+      marginBottom: 8,
+    },
+
+    greetingText: {
+      color: colors.text,
+      fontSize: 34,
+      lineHeight: 37,
+      fontWeight: '800',
+      letterSpacing: -1.25,
+    },
+
+    greetingName: {
+      color: colors.text,
+      fontSize: 34,
+      lineHeight: 37,
+      fontWeight: '800',
+      letterSpacing: -1.25,
     },
 
     cardHeader: {

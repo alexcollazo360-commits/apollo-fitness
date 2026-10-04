@@ -464,6 +464,7 @@ export default function WorkoutScreen() {
     setFabOpen,
   ] = useState(false);
 
+
   const {
     activeWorkout,
     workoutHistory,
@@ -651,6 +652,82 @@ export default function WorkoutScreen() {
         )
       : 0;
 
+  const todayDateKey = (() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  })();
+
+  const formattedToday =
+    new Date().toLocaleDateString(
+      undefined,
+      {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      }
+    );
+
+  const todaysCompletedWorkouts =
+    workoutHistory.filter(
+      (workout) =>
+        workout.workoutDate === todayDateKey
+    );
+
+  const todaysCompletedExercises =
+    todaysCompletedWorkouts.reduce(
+      (total, workout) =>
+        total + workout.exerciseCount,
+      0
+    );
+
+  const todaysCompletedSets =
+    todaysCompletedWorkouts.reduce(
+      (total, workout) =>
+        total + workout.setCount,
+      0
+    );
+
+  const todaysWorkoutTitle =
+    activeWorkout?.name ??
+    (todaysCompletedWorkouts.length === 1
+      ? todaysCompletedWorkouts[0].name
+      : todaysCompletedWorkouts.length > 1
+        ? `${todaysCompletedWorkouts.length} Workouts`
+        : 'No workout yet');
+
+  const todaysWorkoutStatus =
+    activeWorkout
+      ? 'ACTIVE'
+      : todaysCompletedWorkouts.length > 0
+        ? 'COMPLETE'
+        : 'READY';
+
+  const todaysExerciseCount =
+    activeWorkout
+      ? activeWorkout.exercises.length
+      : todaysCompletedExercises;
+
+  const todaysSetCount =
+    activeWorkout
+      ? totalActiveSets
+      : todaysCompletedSets;
+
+  const todaysCompletedSetCount =
+    activeWorkout
+      ? completedActiveSets
+      : todaysCompletedSets;
+
+  const todaysProgress =
+    activeWorkout
+      ? workoutProgress
+      : todaysCompletedWorkouts.length > 0
+        ? 100
+        : 0;
+
   function showMessage(
     title: string,
     message: string
@@ -731,6 +808,7 @@ export default function WorkoutScreen() {
     }
 
     setWorkoutName('');
+    router.push('/workout/strength');
   }
 
   async function handleStartTemplate(
@@ -752,7 +830,10 @@ export default function WorkoutScreen() {
         'Unable to start template',
         'Apollo could not start this workout template.'
       );
+      return;
     }
+
+    router.push('/workout/strength');
   }
 
   async function handleSaveTemplate(
@@ -1419,20 +1500,12 @@ export default function WorkoutScreen() {
     setFabOpen(false);
 
     if (activeWorkout) {
-      scrollViewRef.current?.scrollTo({
-        y: 0,
-        animated: true,
-      });
-
+      router.push('/workout/strength');
       return;
     }
 
     scrollViewRef.current?.scrollTo({
-      y: Math.max(
-        newWorkoutY.current -
-          spacing.md,
-        0
-      ),
+      y: Math.max(newWorkoutY.current - spacing.md, 0),
       animated: true,
     });
   }
@@ -1608,36 +1681,103 @@ export default function WorkoutScreen() {
         </Text>
       </View>
 
-      <Pressable
-        style={styles.runCard}
-        onPress={openRunTracker}
-      >
-        <View style={styles.runCardContent}>
-          <View style={styles.runCardInfo}>
-            <Text style={styles.runEyebrow}>
-              RUNNING
+      <AppCard>
+        <View style={styles.todayWorkoutHeader}>
+          <View style={styles.todayWorkoutHeaderInfo}>
+            <Text style={styles.todayWorkoutEyebrow}>
+              TODAY'S WORKOUT
             </Text>
 
-            <Text style={styles.runTitle}>
-              Outdoor Run
-            </Text>
-
-            <Text style={styles.runDescription}>
-              Track distance, time, pace, and your route.
+            <Text style={styles.todayWorkoutDate}>
+              {formattedToday}
             </Text>
           </View>
 
-          <View style={styles.runAction}>
-            <Text style={styles.runActionText}>
-              START
-            </Text>
-
-            <Text style={styles.runChevron}>
-              ›
-            </Text>
-          </View>
+          <Text
+            style={[
+              styles.todayWorkoutStatus,
+              todaysWorkoutStatus === 'READY' &&
+                styles.todayWorkoutStatusMuted,
+            ]}
+          >
+            {todaysWorkoutStatus}
+          </Text>
         </View>
-      </Pressable>
+
+        <View style={styles.todayWorkoutMain}>
+          <Text style={styles.todayWorkoutTitle}>
+            {todaysWorkoutTitle}
+          </Text>
+
+          <Text style={styles.todayWorkoutSummary}>
+            {activeWorkout
+              ? `${todaysCompletedSetCount} of ${todaysSetCount} sets completed`
+              : todaysCompletedWorkouts.length > 0
+                ? `${todaysCompletedWorkouts.length} ${todaysCompletedWorkouts.length === 1 ? 'workout' : 'workouts'} completed today`
+                : 'Start a workout or choose a saved template when you are ready.'}
+          </Text>
+        </View>
+
+        {(activeWorkout ||
+          todaysCompletedWorkouts.length > 0) && (
+          <>
+            <View style={styles.todayWorkoutStats}>
+              <View style={styles.todayWorkoutStat}>
+                <Text style={styles.todayWorkoutStatValue}>
+                  {todaysExerciseCount}
+                </Text>
+                <Text style={styles.todayWorkoutStatLabel}>
+                  Exercises
+                </Text>
+              </View>
+
+              <View style={styles.todayWorkoutStatDivider} />
+
+              <View style={styles.todayWorkoutStat}>
+                <Text style={styles.todayWorkoutStatValue}>
+                  {todaysSetCount}
+                </Text>
+                <Text style={styles.todayWorkoutStatLabel}>
+                  Sets
+                </Text>
+              </View>
+
+              <View style={styles.todayWorkoutStatDivider} />
+
+              <View style={styles.todayWorkoutStat}>
+                <Text style={styles.todayWorkoutStatValue}>
+                  {Math.round(todaysProgress)}%
+                </Text>
+                <Text style={styles.todayWorkoutStatLabel}>
+                  Progress
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.todayWorkoutProgressTrack}>
+              <View
+                style={[
+                  styles.todayWorkoutProgressFill,
+                  {
+                    width: `${todaysProgress}%`,
+                  },
+                ]}
+              />
+            </View>
+          </>
+        )}
+
+        <Pressable
+          style={styles.todayWorkoutAction}
+          onPress={openWorkoutFromFab}
+        >
+          <Text style={styles.todayWorkoutActionText}>
+            {activeWorkout
+              ? 'CONTINUE WORKOUT'
+              : 'START WORKOUT'}
+          </Text>
+        </Pressable>
+      </AppCard>
 
       <View
         style={
@@ -3284,92 +3424,27 @@ export default function WorkoutScreen() {
                       </Text>
                     </View>
 
-                    <View
-                      style={
-                        styles.historyStatRow
-                      }
-                    >
-                      <View
-                        style={
-                          styles.historyStat
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.historyStatValue
-                          }
-                        >
-                          {workout.exerciseCount}
-                        </Text>
+                    <View style={styles.historyCompactFooter}>
+                      <Text style={styles.historyCompactStats}>
+                        {workout.exerciseCount} {workout.exerciseCount === 1 ? 'exercise' : 'exercises'}
+                        {'  •  '}
+                        {workout.setCount} {workout.setCount === 1 ? 'set' : 'sets'}
+                      </Text>
 
-                        <Text
-                          style={
-                            styles.historyStatLabel
-                          }
-                        >
-                          Exercises
-                        </Text>
-                      </View>
-
-                      <View
-                        style={
-                          styles.historyStat
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.historyStatValue
-                          }
-                        >
-                          {workout.setCount}
-                        </Text>
-
-                        <Text
-                          style={
-                            styles.historyStatLabel
-                          }
-                        >
-                          Sets
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View
-                      style={
-                        styles.historyActions
-                      }
-                    >
                       <Pressable
-                        style={
-                          styles.historySecondaryAction
-                        }
+                        style={styles.historyCompactTemplateAction}
                         disabled={
-                          savingTemplateWorkoutId ===
-                            workout.id ||
-                          deletingWorkoutId ===
-                            workout.id
+                          savingTemplateWorkoutId === workout.id ||
+                          deletingWorkoutId === workout.id
                         }
                         onPress={() =>
-                          confirmSaveTemplate(
-                            workout.id,
-                            workout.name
-                          )
+                          confirmSaveTemplate(workout.id, workout.name)
                         }
                       >
-                        {savingTemplateWorkoutId ===
-                        workout.id ? (
-                          <ActivityIndicator
-                            size="small"
-                            color={
-                              colors.primary
-                            }
-                          />
+                        {savingTemplateWorkoutId === workout.id ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
                         ) : (
-                          <Text
-                            style={
-                              styles.historySecondaryActionText
-                            }
-                          >
+                          <Text style={styles.historyCompactTemplateText}>
                             SAVE TEMPLATE
                           </Text>
                         )}
@@ -3415,7 +3490,7 @@ export default function WorkoutScreen() {
               onPress={openRunTracker}
             >
               <Text style={styles.fabActionText}>
-                Outdoor Run
+                Track a Run
               </Text>
             </Pressable>
           </View>
@@ -4476,6 +4551,120 @@ const styles =
       fontWeight: '700',
     },
 
+    todayWorkoutHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+
+    todayWorkoutHeaderInfo: {
+      flex: 1,
+    },
+
+    todayWorkoutEyebrow: {
+      color: colors.primary,
+      fontSize: fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
+
+    todayWorkoutDate: {
+      color: colors.textSecondary,
+      fontSize: fontSize.small,
+      marginTop: spacing.xs,
+    },
+
+    todayWorkoutStatus: {
+      color: colors.primary,
+      fontSize: fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
+
+    todayWorkoutStatusMuted: {
+      color: colors.textSecondary,
+    },
+
+    todayWorkoutMain: {
+      gap: spacing.xs,
+    },
+
+    todayWorkoutTitle: {
+      color: colors.text,
+      fontSize: fontSize.title,
+      fontWeight: '700',
+    },
+
+    todayWorkoutSummary: {
+      color: colors.textSecondary,
+      fontSize: fontSize.small,
+      lineHeight: 20,
+    },
+
+    todayWorkoutStats: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: 12,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.sm,
+    },
+
+    todayWorkoutStat: {
+      flex: 1,
+      alignItems: 'center',
+    },
+
+    todayWorkoutStatDivider: {
+      width: 1,
+      height: 34,
+      backgroundColor: colors.border,
+    },
+
+    todayWorkoutStatValue: {
+      color: colors.text,
+      fontSize: fontSize.subtitle,
+      fontWeight: '700',
+    },
+
+    todayWorkoutStatLabel: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      marginTop: spacing.xs,
+    },
+
+    todayWorkoutProgressTrack: {
+      width: '100%',
+      height: 8,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+
+    todayWorkoutProgressFill: {
+      height: '100%',
+      backgroundColor: colors.primary,
+      borderRadius: 999,
+    },
+
+    todayWorkoutAction: {
+      width: '100%',
+      minHeight: 44,
+      borderRadius: 12,
+      borderColor: colors.primary,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    todayWorkoutActionText: {
+      color: colors.primary,
+      fontSize: fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+    },
+
     runCard: {
       backgroundColor:
         colors.surface,
@@ -4541,6 +4730,89 @@ const styles =
       color: colors.primary,
       fontSize: 26,
       fontWeight: '400',
+    },
+
+    runModeMenu: {
+      marginTop: -spacing.sm,
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
+
+    runModeOption: {
+      minHeight: 70,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+      borderBottomColor: colors.border,
+      borderBottomWidth: 1,
+    },
+
+    runModeOptionLast: {
+      borderBottomWidth: 0,
+    },
+
+    runModeOptionInfo: {
+      flex: 1,
+    },
+
+    runModeOptionTitle: {
+      color: colors.text,
+      fontSize: fontSize.body,
+      fontWeight: '700',
+    },
+
+    runModeOptionDescription: {
+      color: colors.textSecondary,
+      fontSize: fontSize.small,
+      marginTop: spacing.xs,
+    },
+
+    runModeOptionAction: {
+      color: colors.primary,
+      fontSize: fontSize.small,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+    },
+
+    runModeOptionMutedAction: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+    },
+
+    historyCompactFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      marginTop: spacing.xs,
+    },
+
+    historyCompactStats: {
+      flex: 1,
+      color: colors.textSecondary,
+      fontSize: fontSize.small,
+      fontWeight: '600',
+    },
+
+    historyCompactTemplateAction: {
+      minHeight: 34,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.sm,
+    },
+
+    historyCompactTemplateText: {
+      color: colors.primary,
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.5,
     },
 
     runHistoryHeader: {

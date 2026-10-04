@@ -746,38 +746,6 @@ export default function FoodScreen() {
             </Text>
           </View>
         </View>
-
-        <Pressable
-          style={({
-            pressed,
-          }) => [
-            styles.copyDayButton,
-
-            pressed &&
-              styles.pressed,
-          ]}
-          onPress={
-            openCopyDay
-          }
-        >
-          <Text
-            style={
-              styles.copyDayButtonText
-            }
-          >
-            Copy Previous Day
-          </Text>
-
-          <Text
-            style={
-              styles.copyDayButtonSubtext
-            }
-          >
-            Duplicate all meals from
-            another day
-          </Text>
-        </Pressable>
-
         <AppCard>
           <Text
             style={
