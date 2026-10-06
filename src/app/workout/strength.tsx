@@ -94,6 +94,7 @@ export default function StrengthWorkoutScreen() {
   const [seconds,setSeconds] = useState(0);
   const [picker,setPicker] = useState(false);
   const [search,setSearch] = useState('');
+  const [category,setCategory] = useState('All');
   const [selected,setSelected] = useState<ExerciseLibraryItem|null>(null);
   const [custom,setCustom] = useState(false);
   const [customName,setCustomName] = useState('');
@@ -116,11 +117,39 @@ export default function StrengthWorkoutScreen() {
     return () => clearInterval(id);
   }, [activeWorkout?.startedAt, activeWorkout?.completedAt]);
 
+  const categories = useMemo(
+    () => [
+      'All',
+      ...Array.from(
+        new Set(
+          exerciseLibrary.map(
+            exercise => exercise.category
+          )
+        )
+      ),
+    ],
+    []
+  );
+
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return [];
-    return exerciseLibrary.filter(x => `${x.name} ${x.category}`.toLowerCase().includes(q)).slice(0,12);
-  }, [search]);
+
+    return exerciseLibrary
+      .filter(exercise => {
+        const matchesCategory =
+          category === 'All' ||
+          exercise.category === category;
+
+        const matchesSearch =
+          !q ||
+          `${exercise.name} ${exercise.category}`
+            .toLowerCase()
+            .includes(q);
+
+        return matchesCategory && matchesSearch;
+      })
+      .slice(0, 40);
+  }, [search, category]);
 
   const totalSets = activeWorkout?.exercises.reduce((n,e)=>n+e.sets.length,0) ?? 0;
   const completedSets = activeWorkout?.exercises.reduce((n,e)=>n+e.sets.filter(s=>s.completed).length,0) ?? 0;
@@ -138,7 +167,7 @@ export default function StrengthWorkoutScreen() {
     const ok = await addExercise(name);
     setAdding(false);
     if (!ok) { message('Unable to add exercise','Apollo could not add this exercise.'); return; }
-    setPicker(false); setSearch(''); setSelected(null); setCustom(false); setCustomName('');
+    setPicker(false); setSearch(''); setCategory('All'); setSelected(null); setCustom(false); setCustomName('');
   }
 
   async function removeExercise(id:string) {
@@ -248,12 +277,122 @@ export default function StrengthWorkoutScreen() {
 
         {picker ? (
           <AppCard>
-            <View style={styles.exerciseHeader}><View style={styles.flex}><Text style={styles.eyebrow}>ADD EXERCISE</Text><Text style={styles.muted}>Search the library or add a custom movement.</Text></View><Pressable onPress={()=>setPicker(false)}><Ionicons name="close" size={24} color={colors.textSecondary}/></Pressable></View>
+            <View style={styles.exerciseHeader}><View style={styles.flex}><Text style={styles.eyebrow}>ADD EXERCISE</Text><Text style={styles.muted}>Browse by muscle group, search the library, or create your own.</Text></View><Pressable onPress={()=>setPicker(false)}><Ionicons name="close" size={24} color={colors.textSecondary}/></Pressable></View>
             {!custom ? (<>
-              <TextInput style={styles.search} value={search} onChangeText={v=>{setSearch(v);setSelected(null)}} placeholder="Search exercises" placeholderTextColor={colors.textSecondary} autoFocus/>
-              {search.trim()?<View style={styles.results}>{results.map(x=><Pressable key={`${x.name}-${x.category}`} style={[styles.result,selected?.name===x.name&&styles.selected]} onPress={()=>{setSelected(x);setSearch(x.name)}}><View style={styles.flex}><Text style={styles.resultName}>{x.name}</Text><Text style={styles.muted}>{x.category}</Text></View><Text style={styles.selectText}>{selected?.name===x.name?'SELECTED':'SELECT'}</Text></Pressable>)}</View>:<Text style={styles.muted}>Search by exercise name or muscle group.</Text>}
-              <Pressable style={[styles.primary,(!selected||adding)&&styles.disabled]} disabled={!selected||adding} onPress={addChosenExercise}>{adding?<ActivityIndicator color={colors.background}/>:<Text style={styles.primaryText}>ADD EXERCISE</Text>}</Pressable>
-              <Pressable style={styles.outline} onPress={()=>{setCustom(true);setSearch('');setSelected(null)}}><Text style={styles.outlineText}>+ CUSTOM EXERCISE</Text></Pressable>
+              <TextInput
+                style={styles.search}
+                value={search}
+                onChangeText={value=>{
+                  setSearch(value);
+                  setSelected(null);
+                }}
+                placeholder="Search exercises or muscle groups"
+                placeholderTextColor={colors.textSecondary}
+                autoCorrect={false}
+              />
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryRow}
+              >
+                {categories.map(item=>(
+                  <Pressable
+                    key={item}
+                    style={[
+                      styles.categoryChip,
+                      category===item && styles.categoryChipActive,
+                    ]}
+                    onPress={()=>{
+                      setCategory(item);
+                      setSelected(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        category===item && styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {item.toUpperCase()}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+
+              <View style={styles.libraryHeader}>
+                <View style={styles.flex}>
+                  <Text style={styles.libraryTitle}>
+                    {search.trim()
+                      ? 'SEARCH RESULTS'
+                      : category==='All'
+                        ? 'EXERCISE LIBRARY'
+                        : category.toUpperCase()}
+                  </Text>
+                  <Text style={styles.muted}>
+                    {results.length} {results.length===1?'exercise':'exercises'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.results}>
+                {results.length>0 ? results.map(x=>(
+                  <Pressable
+                    key={`${x.name}-${x.category}`}
+                    style={[
+                      styles.result,
+                      selected?.name===x.name && styles.selected,
+                    ]}
+                    onPress={()=>setSelected(x)}
+                  >
+                    <View style={styles.exerciseLibraryIcon}>
+                      <Ionicons
+                        name="barbell-outline"
+                        size={19}
+                        color={selected?.name===x.name ? colors.primary : colors.textSecondary}
+                      />
+                    </View>
+
+                    <View style={styles.flex}>
+                      <Text style={styles.resultName}>{x.name}</Text>
+                      <Text style={styles.muted}>{x.category}</Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.libraryAdd,
+                        selected?.name===x.name && styles.libraryAddSelected,
+                      ]}
+                    >
+                      <Ionicons
+                        name={selected?.name===x.name ? 'checkmark' : 'add'}
+                        size={18}
+                        color={selected?.name===x.name ? colors.background : colors.primary}
+                      />
+                    </View>
+                  </Pressable>
+                )) : (
+                  <View style={styles.emptyLibrary}>
+                    <Text style={styles.exerciseName}>No exercises found</Text>
+                    <Text style={styles.muted}>
+                      Try another search or create a custom exercise.
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {selected ? (
+                <View style={styles.selectedSummary}>
+                  <View style={styles.flex}>
+                    <Text style={styles.smallLabel}>SELECTED EXERCISE</Text>
+                    <Text style={styles.selectedSummaryName}>{selected.name}</Text>
+                  </View>
+                  <Ionicons name="checkmark-circle" size={24} color={colors.primary}/>
+                </View>
+              ) : null}
+
+              <Pressable style={[styles.primary,(!selected||adding)&&styles.disabled]} disabled={!selected||adding} onPress={addChosenExercise}>{adding?<ActivityIndicator color={colors.background}/>:<Text style={styles.primaryText}>{selected ? `ADD ${selected.name.toUpperCase()}` : 'SELECT AN EXERCISE'}</Text>}</Pressable>
+              <Pressable style={styles.outline} onPress={()=>{setCustom(true);setSearch('');setCategory('All');setSelected(null)}}><Text style={styles.outlineText}>+ CREATE CUSTOM EXERCISE</Text></Pressable>
             </>):(<>
               <TextInput style={styles.search} value={customName} onChangeText={setCustomName} placeholder="Custom exercise name" placeholderTextColor={colors.textSecondary} autoFocus/>
               <Pressable style={[styles.primary,(!customName.trim()||adding)&&styles.disabled]} disabled={!customName.trim()||adding} onPress={addChosenExercise}>{adding?<ActivityIndicator color={colors.background}/>:<Text style={styles.primaryText}>ADD CUSTOM EXERCISE</Text>}</Pressable>
@@ -261,7 +400,7 @@ export default function StrengthWorkoutScreen() {
             </>)}
           </AppCard>
         ) : (
-          <Pressable style={styles.addExercise} onPress={()=>{setSearch('');setSelected(null);setCustom(false);setCustomName('');setPicker(true)}}><Ionicons name="add" size={22} color={colors.primary}/><Text style={styles.addExerciseText}>ADD EXERCISE</Text></Pressable>
+          <Pressable style={styles.addExercise} onPress={()=>{setSearch('');setCategory('All');setSelected(null);setCustom(false);setCustomName('');setPicker(true)}}><Ionicons name="add" size={22} color={colors.primary}/><Text style={styles.addExerciseText}>ADD EXERCISE</Text></Pressable>
         )}
 
         <Pressable style={[styles.finish,finishing&&styles.disabled]} onPress={confirmFinish} disabled={finishing||discarding}>{finishing?<ActivityIndicator color={colors.background}/>:<><Ionicons name="checkmark" size={22} color={colors.background}/><Text style={styles.finishText}>FINISH WORKOUT</Text></>}</Pressable>
@@ -284,5 +423,18 @@ const styles=StyleSheet.create({
   doneButton:{width:42,height:44,borderRadius:10,borderWidth:1,borderColor:colors.primary,alignItems:'center',justifyContent:'center'},doneButtonActive:{backgroundColor:colors.primary},doneText:{color:colors.primary,fontSize:fontSize.body,fontWeight:'800'},doneTextActive:{color:colors.background},deleteSet:{width:34,height:44,alignItems:'center',justifyContent:'center'},deleteSetText:{color:colors.danger,fontSize:24},
   outline:{minHeight:46,borderRadius:23,borderWidth:1,borderColor:colors.border,alignItems:'center',justifyContent:'center'},outlineText:{color:colors.primary,fontSize:fontSize.small,fontWeight:'800'},addExercise:{minHeight:58,borderRadius:29,borderWidth:1,borderColor:colors.primary,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:spacing.sm},addExerciseText:{color:colors.primary,fontSize:fontSize.body,fontWeight:'800',letterSpacing:.7},
   search:{minHeight:48,backgroundColor:colors.surfaceSecondary,borderWidth:1,borderColor:colors.border,borderRadius:borderRadius.md,color:colors.text,paddingHorizontal:spacing.md,fontSize:fontSize.body},results:{gap:spacing.sm},result:{minHeight:56,borderWidth:1,borderColor:colors.border,borderRadius:borderRadius.md,padding:spacing.md,flexDirection:'row',alignItems:'center',gap:spacing.md},selected:{borderColor:colors.primary},resultName:{color:colors.text,fontSize:fontSize.body,fontWeight:'700'},selectText:{color:colors.primary,fontSize:10,fontWeight:'800'},
+  categoryRow:{gap:spacing.sm,paddingRight:spacing.sm},
+  categoryChip:{minHeight:34,paddingHorizontal:spacing.md,borderRadius:17,borderWidth:1,borderColor:colors.border,alignItems:'center',justifyContent:'center',backgroundColor:colors.surfaceSecondary},
+  categoryChipActive:{borderColor:colors.primary,backgroundColor:colors.primary},
+  categoryChipText:{color:colors.textSecondary,fontSize:9,fontWeight:'800',letterSpacing:.6},
+  categoryChipTextActive:{color:colors.background},
+  libraryHeader:{flexDirection:'row',alignItems:'center',marginTop:spacing.xs},
+  libraryTitle:{color:colors.text,fontSize:fontSize.small,fontWeight:'800',letterSpacing:1.1},
+  exerciseLibraryIcon:{width:38,height:38,borderRadius:19,backgroundColor:colors.surfaceSecondary,alignItems:'center',justifyContent:'center'},
+  libraryAdd:{width:34,height:34,borderRadius:17,borderWidth:1,borderColor:colors.primary,alignItems:'center',justifyContent:'center'},
+  libraryAddSelected:{backgroundColor:colors.primary},
+  emptyLibrary:{paddingVertical:spacing.lg,gap:spacing.xs},
+  selectedSummary:{flexDirection:'row',alignItems:'center',gap:spacing.md,padding:spacing.md,borderRadius:borderRadius.md,backgroundColor:colors.surfaceSecondary,borderWidth:1,borderColor:colors.primary},
+  selectedSummaryName:{color:colors.text,fontSize:fontSize.body,fontWeight:'800',marginTop:3},
   primary:{minHeight:52,borderRadius:26,backgroundColor:colors.primary,alignItems:'center',justifyContent:'center'},primaryText:{color:colors.background,fontSize:fontSize.body,fontWeight:'900'},finish:{minHeight:60,borderRadius:30,backgroundColor:colors.primary,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:spacing.sm},finishText:{color:colors.background,fontSize:fontSize.body,fontWeight:'900'},discard:{minHeight:48,borderRadius:24,borderWidth:1,borderColor:colors.danger,alignItems:'center',justifyContent:'center'},discardText:{color:colors.danger,fontSize:fontSize.small,fontWeight:'800'},disabled:{opacity:.5},
 });

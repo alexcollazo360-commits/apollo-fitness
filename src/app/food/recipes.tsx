@@ -427,6 +427,14 @@ export default function RecipesScreen() {
           }`,
 
         meal,
+
+        recipeId:
+          selectedRecipe.id,
+
+        recipeSource:
+          selectedSource === 'curated'
+            ? 'apollo'
+            : 'personal',
       });
 
     setLogging(false);

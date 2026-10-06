@@ -456,9 +456,6 @@ export default function WorkoutScreen() {
   const addExerciseY =
     useRef(0);
 
-  const newWorkoutY =
-    useRef(0);
-
   const [
     fabOpen,
     setFabOpen,
@@ -660,6 +657,115 @@ export default function WorkoutScreen() {
 
     return `${year}-${month}-${day}`;
   })();
+
+  function getLocalDateKey(
+    date: Date
+  ) {
+    const year =
+      date.getFullYear();
+
+    const month =
+      String(
+        date.getMonth() + 1
+      ).padStart(2, '0');
+
+    const day =
+      String(
+        date.getDate()
+      ).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  function getCurrentWeek() {
+    const today =
+      new Date();
+
+    today.setHours(
+      0,
+      0,
+      0,
+      0
+    );
+
+    const monday =
+      new Date(today);
+
+    const dayOfWeek =
+      today.getDay();
+
+    const daysSinceMonday =
+      dayOfWeek === 0
+        ? 6
+        : dayOfWeek - 1;
+
+    monday.setDate(
+      today.getDate() -
+        daysSinceMonday
+    );
+
+    return Array.from(
+      { length: 7 },
+      (_, index) => {
+        const date =
+          new Date(monday);
+
+        date.setDate(
+          monday.getDate() +
+            index
+        );
+
+        return {
+          label:
+            [
+              'MON',
+              'TUE',
+              'WED',
+              'THU',
+              'FRI',
+              'SAT',
+              'SUN',
+            ][index],
+
+          dateKey:
+            getLocalDateKey(
+              date
+            ),
+
+          isToday:
+            getLocalDateKey(
+              date
+            ) ===
+            getLocalDateKey(
+              today
+            ),
+
+          isFuture:
+            date.getTime() >
+            today.getTime(),
+        };
+      }
+    );
+  }
+
+  const currentWeek =
+    getCurrentWeek();
+
+  const completedWorkoutDates =
+    new Set(
+      workoutHistory.map(
+        (workout) =>
+          workout.workoutDate
+      )
+    );
+
+  for (
+    const run of runHistory
+  ) {
+    completedWorkoutDates.add(
+      run.runDate
+    );
+  }
 
   const formattedToday =
     new Date().toLocaleDateString(
@@ -1504,10 +1610,7 @@ export default function WorkoutScreen() {
       return;
     }
 
-    scrollViewRef.current?.scrollTo({
-      y: Math.max(newWorkoutY.current - spacing.md, 0),
-      animated: true,
-    });
+    router.push('/workout/start');
   }
 
   function formatRunDate(
@@ -1671,14 +1774,143 @@ export default function WorkoutScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-      <View style={styles.header}>
-        <Text style={styles.screenTitle}>
-          Workout
-        </Text>
+      <View
+        style={styles.header}
+      >
+        <View
+          style={
+            styles.brandRow
+          }
+        >
+          <View
+            style={
+              styles.brandMark
+            }
+          >
+            <Text
+              style={
+                styles.brandMarkText
+              }
+            >
+              AU
+            </Text>
+          </View>
 
-        <Text style={styles.subtitle}>
-          Log your training sessions.
-        </Text>
+          <View
+            style={
+              styles.brandCopy
+            }
+          >
+            <Text
+              style={
+                styles.brandName
+              }
+            >
+              APOLLO ULTRA
+            </Text>
+
+            <Text
+              style={
+                styles.brandTagline
+              }
+            >
+              TRACK TODAY. BUILD TOMORROW.
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={
+            styles.workoutHeading
+          }
+        >
+          <Text
+            style={
+              styles.screenTitle
+            }
+          >
+            Workout
+          </Text>
+
+          <Text
+            style={
+              styles.subtitle
+            }
+          >
+            Track today&apos;s training
+          </Text>
+        </View>
+      </View>
+
+      <View
+        style={
+          styles.consistencyStrip
+        }
+      >
+        <View
+          style={
+            styles.consistencyDays
+          }
+        >
+          {currentWeek.map(
+            (day) => {
+              const completed =
+                completedWorkoutDates.has(
+                  day.dateKey
+                );
+
+              return (
+                <View
+                  key={
+                    day.dateKey
+                  }
+                  style={
+                    styles.consistencyDay
+                  }
+                >
+                  <View
+                    style={[
+                      styles.consistencyCircle,
+
+                      completed &&
+                        styles.consistencyCircleLogged,
+
+                      day.isToday &&
+                        styles.consistencyCircleToday,
+
+                      day.isFuture &&
+                        styles.consistencyCircleFuture,
+                    ]}
+                  >
+                    {completed ? (
+                      <Text
+                        style={
+                          styles.consistencyCheck
+                        }
+                      >
+                        ✓
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.consistencyDayLabel,
+
+                      day.isToday &&
+                        styles.consistencyDayLabelToday,
+
+                      day.isFuture &&
+                        styles.consistencyDayLabelFuture,
+                    ]}
+                  >
+                    {day.label}
+                  </Text>
+                </View>
+              );
+            }
+          )}
+        </View>
       </View>
 
       <AppCard>
@@ -3205,98 +3437,6 @@ export default function WorkoutScreen() {
             )
           )}
 
-          <View
-            style={
-              styles.sectionHeader
-            }
-            onLayout={(event) => {
-              newWorkoutY.current =
-                event.nativeEvent.layout.y;
-            }}
-          >
-            <View>
-              <Text
-                style={
-                  styles.sectionTitle
-                }
-              >
-                New Workout
-              </Text>
-
-              <Text
-                style={
-                  styles.sectionSubtitle
-                }
-              >
-                Start from scratch.
-              </Text>
-            </View>
-          </View>
-
-          <AppCard>
-            <Text
-              style={
-                styles.cardTitle
-              }
-            >
-              Start a Workout
-            </Text>
-
-            <Text
-              style={
-                styles.secondaryText
-              }
-            >
-              Give your workout a name, or leave it blank to use "Workout".
-            </Text>
-
-            <View
-              style={
-                styles.inputGroup
-              }
-            >
-              <Text
-                style={
-                  styles.label
-                }
-              >
-                WORKOUT NAME
-              </Text>
-
-              <TextInput
-                style={
-                  styles.input
-                }
-                value={
-                  workoutName
-                }
-                onChangeText={
-                  setWorkoutName
-                }
-                placeholder="Push Day"
-                placeholderTextColor={
-                  colors.textSecondary
-                }
-              />
-            </View>
-
-            <Pressable
-              style={
-                styles.primaryButton
-              }
-              onPress={
-                handleStartWorkout
-              }
-            >
-              <Text
-                style={
-                  styles.primaryButtonText
-                }
-              >
-                START WORKOUT
-              </Text>
-            </Pressable>
-          </AppCard>
         </>
       )}
 
@@ -3541,24 +3681,147 @@ const styles =
     },
 
     header: {
-      marginBottom:
-        spacing.sm,
+      marginBottom: 2,
+      gap: 8,
+    },
+
+    brandRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+    },
+
+    brandMark: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor:
+        colors.border,
+      backgroundColor:
+        colors.surface,
+    },
+
+    brandMarkText: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+
+    brandCopy: {
+      flex: 1,
+      gap: 1,
+    },
+
+    brandName: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 2.2,
+    },
+
+    brandTagline: {
+      color:
+        colors.textSecondary,
+      fontSize: 8,
+      fontWeight: '700',
+      letterSpacing: 1.05,
+    },
+
+    workoutHeading: {
+      marginTop: 14,
+      marginBottom: 8,
     },
 
     screenTitle: {
       color: colors.text,
-      fontSize:
-        fontSize.screenTitle,
-      fontWeight: '700',
+      fontSize: 34,
+      lineHeight: 37,
+      fontWeight: '800',
+      letterSpacing: -1.25,
     },
 
     subtitle: {
       color:
         colors.textSecondary,
-      fontSize:
-        fontSize.body,
-      marginTop:
-        spacing.xs,
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: '600',
+      marginTop: 4,
+    },
+
+    consistencyStrip: {
+      paddingHorizontal: 4,
+      marginBottom: 2,
+    },
+
+    consistencyDays: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent:
+        'space-between',
+    },
+
+    consistencyDay: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 5,
+    },
+
+    consistencyCircle: {
+      width: 27,
+      height: 27,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor:
+        colors.border,
+      backgroundColor:
+        'transparent',
+    },
+
+    consistencyCircleLogged: {
+      backgroundColor:
+        colors.primary,
+      borderColor:
+        colors.primary,
+    },
+
+    consistencyCircleToday: {
+      borderWidth: 2,
+      borderColor:
+        colors.primary,
+    },
+
+    consistencyCircleFuture: {
+      opacity: 0.3,
+    },
+
+    consistencyCheck: {
+      color: colors.background,
+      fontSize: 12,
+      fontWeight: '900',
+    },
+
+    consistencyDayLabel: {
+      color:
+        colors.textSecondary,
+      fontSize: 8,
+      fontWeight: '700',
+      letterSpacing: 0.35,
+    },
+
+    consistencyDayLabelToday: {
+      color: colors.primary,
+      fontWeight: '900',
+    },
+
+    consistencyDayLabelFuture: {
+      opacity: 0.4,
     },
 
     loadingContainer: {

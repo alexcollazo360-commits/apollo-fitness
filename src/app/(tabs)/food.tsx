@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import {
+  useEffect,
   useState,
 } from 'react';
 
@@ -17,6 +18,7 @@ import {
 } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 
 import AppCard from '../../components/AppCard';
 
@@ -30,6 +32,7 @@ import {
   DayHistoryItem,
   MealHistoryDay,
   MealType,
+  RecentRecipeHistoryItem,
   useFood,
 } from '../../context/FoodContext';
 
@@ -77,6 +80,7 @@ export default function FoodScreen() {
     deleteFoodEntry,
     getMealHistory,
     copyMealFromDate,
+    getRecentRecipeHistory,
     getDayHistory,
     copyDayFromDate,
   } = useFood();
@@ -191,6 +195,23 @@ export default function FoodScreen() {
     setLoggingRecipe,
   ] = useState(false);
 
+  const [
+    recentRecipeHistory,
+    setRecentRecipeHistory,
+  ] = useState<
+    RecentRecipeHistoryItem[]
+  >([]);
+
+  const [
+    recentRecipesLoading,
+    setRecentRecipesLoading,
+  ] = useState(true);
+
+  const [
+    weeklyLoggedDates,
+    setWeeklyLoggedDates,
+  ] = useState<string[]>([]);
+
   const calorieTarget =
     profile?.dailyCalorieTarget ??
     2200;
@@ -235,24 +256,91 @@ export default function FoodScreen() {
       0
     );
 
+  const calorieDifference =
+    calorieTarget -
+    totalCalories;
+
+  const isOverCalories =
+    calorieDifference < 0;
+
+  const calorieStatusAmount =
+    Math.abs(
+      calorieDifference
+    );
+
+  const getProgress = (
+    current: number,
+    target: number
+  ) => {
+    if (target <= 0) {
+      return 0;
+    }
+
+    return Math.min(
+      (current / target) * 100,
+      100
+    );
+  };
+
   const calorieProgress =
-    calorieTarget > 0
-      ? Math.min(
-          (totalCalories /
-            calorieTarget) *
-            100,
-          100
-        )
-      : 0;
+    getProgress(
+      totalCalories,
+      calorieTarget
+    );
 
-  const previewRecipes =
-    recipes.slice(0, 3);
+  const proteinProgress =
+    getProgress(
+      totalProtein,
+      proteinTarget
+    );
 
-  const featuredApolloRecipes =
-    curatedRecipes
+  const carbProgress =
+    getProgress(
+      totalCarbs,
+      carbTarget
+    );
+
+  const fatProgress =
+    getProgress(
+      totalFat,
+      fatTarget
+    );
+
+  const recentRecipes =
+    recentRecipeHistory
+      .map((historyItem) => {
+        const recipe =
+          historyItem.recipeSource ===
+          'apollo'
+            ? curatedRecipes.find(
+                (item) =>
+                  item.id ===
+                  historyItem.recipeId
+              )
+            : recipes.find(
+                (item) =>
+                  item.id ===
+                  historyItem.recipeId
+              );
+
+        return recipe
+          ? {
+              recipe,
+              source:
+                historyItem.recipeSource,
+            }
+          : null;
+      })
       .filter(
-        (recipe) =>
-          recipe.isFeatured
+        (
+          item
+        ): item is {
+          recipe: LoggableRecipe;
+          source:
+            | 'personal'
+            | 'apollo';
+        } =>
+          item !== null
       )
       .slice(0, 3);
 
@@ -308,6 +396,31 @@ export default function FoodScreen() {
           carbs: 0,
           fat: 0,
         };
+
+  async function loadRecentRecipes() {
+    setRecentRecipesLoading(
+      true
+    );
+
+    const history =
+      await getRecentRecipeHistory(
+        3
+      );
+
+    setRecentRecipeHistory(
+      history
+    );
+
+    setRecentRecipesLoading(
+      false
+    );
+  }
+
+  useEffect(() => {
+    loadRecentRecipes();
+  }, []);
+
+
 
   function handleAddFood() {
     setFabOpen(false);
@@ -421,6 +534,13 @@ export default function FoodScreen() {
           }`,
 
         meal,
+        recipeId:
+          selectedRecipe.id,
+        recipeSource:
+          'category' in
+          selectedRecipe
+            ? 'apollo'
+            : 'personal',
       });
 
     setLoggingRecipe(false);
@@ -432,6 +552,8 @@ export default function FoodScreen() {
 
       return;
     }
+
+    await loadRecentRecipes();
 
     setSelectedRecipe(null);
 
@@ -648,6 +770,155 @@ export default function FoodScreen() {
     setDayCopyMessage(null);
   }
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadWeeklyLogging() {
+      const history =
+        await getDayHistory();
+
+      if (!mounted) {
+        return;
+      }
+
+      setWeeklyLoggedDates(
+        history.map(
+          (day) =>
+            day.loggedDate
+        )
+      );
+    }
+
+    loadWeeklyLogging();
+
+    return () => {
+      mounted = false;
+    };
+  }, [
+    foodEntries,
+  ]);
+
+  function getLocalDateKey(
+    date: Date
+  ) {
+    const year =
+      date.getFullYear();
+
+    const month =
+      String(
+        date.getMonth() + 1
+      ).padStart(2, '0');
+
+    const day =
+      String(
+        date.getDate()
+      ).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  function getCurrentWeek() {
+    const today =
+      new Date();
+
+    today.setHours(
+      0,
+      0,
+      0,
+      0
+    );
+
+    const monday =
+      new Date(today);
+
+    const dayOfWeek =
+      today.getDay();
+
+    const daysSinceMonday =
+      dayOfWeek === 0
+        ? 6
+        : dayOfWeek - 1;
+
+    monday.setDate(
+      today.getDate() -
+        daysSinceMonday
+    );
+
+    return Array.from(
+      { length: 7 },
+      (_, index) => {
+        const date =
+          new Date(monday);
+
+        date.setDate(
+          monday.getDate() +
+            index
+        );
+
+        return {
+          label:
+            [
+              'MON',
+              'TUE',
+              'WED',
+              'THU',
+              'FRI',
+              'SAT',
+              'SUN',
+            ][index],
+
+          dateKey:
+            getLocalDateKey(
+              date
+            ),
+
+          isToday:
+            getLocalDateKey(
+              date
+            ) ===
+            getLocalDateKey(
+              today
+            ),
+
+          isFuture:
+            date.getTime() >
+            today.getTime(),
+        };
+      }
+    );
+  }
+
+  const currentWeek =
+    getCurrentWeek();
+
+  const todayDateKey =
+    getLocalDateKey(
+      new Date()
+    );
+
+  const loggedDateSet =
+    new Set(
+      weeklyLoggedDates
+    );
+
+  if (
+    foodEntries.length > 0
+  ) {
+    loggedDateSet.add(
+      todayDateKey
+    );
+  }
+
+  const loggedDaysThisWeek =
+    currentWeek.filter(
+      (day) =>
+        loggedDateSet.has(
+          day.dateKey
+        )
+    ).length;
+
+
+
   function formatHistoryDate(
     dateString: string
   ) {
@@ -725,7 +996,49 @@ export default function FoodScreen() {
         >
           <View
             style={
-              styles.headerText
+              styles.brandRow
+            }
+          >
+            <View
+              style={
+                styles.brandMark
+              }
+            >
+              <Text
+                style={
+                  styles.brandMarkText
+                }
+              >
+                AU
+              </Text>
+            </View>
+
+            <View
+              style={
+                styles.brandCopy
+              }
+            >
+              <Text
+                style={
+                  styles.brandName
+                }
+              >
+                APOLLO ULTRA
+              </Text>
+
+              <Text
+                style={
+                  styles.brandTagline
+                }
+              >
+                TRACK TODAY. BUILD TOMORROW.
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={
+              styles.foodHeading
             }
           >
             <Text
@@ -741,163 +1054,367 @@ export default function FoodScreen() {
                 styles.subtitle
               }
             >
-              Track today&apos;s
-              nutrition
+              Track today&apos;s nutrition
             </Text>
           </View>
         </View>
-        <AppCard>
-          <Text
+
+        <View
+          style={
+            styles.consistencyStrip
+          }
+        >
+          <View
             style={
-              styles.cardTitle
+              styles.consistencyDays
             }
           >
-            Today&apos;s Nutrition
-          </Text>
+            {currentWeek.map(
+              (day) => {
+                const logged =
+                  loggedDateSet.has(
+                    day.dateKey
+                  );
 
-          <View>
+                return (
+                  <View
+                    key={
+                      day.dateKey
+                    }
+                    style={
+                      styles.consistencyDay
+                    }
+                  >
+                    <View
+                      style={[
+                        styles.consistencyCircle,
+
+                        logged &&
+                          styles.consistencyCircleLogged,
+
+                        day.isToday &&
+                          styles.consistencyCircleToday,
+
+                        day.isFuture &&
+                          styles.consistencyCircleFuture,
+                      ]}
+                    >
+                      {logged ? (
+                        <Ionicons
+                          name="checkmark"
+                          size={12}
+                          color="#08110B"
+                        />
+                      ) : null}
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.consistencyDayLabel,
+
+                        day.isToday &&
+                          styles.consistencyDayLabelToday,
+
+                        day.isFuture &&
+                          styles.consistencyDayLabelFuture,
+                      ]}
+                    >
+                      {day.label}
+                    </Text>
+                  </View>
+                );
+              }
+            )}
+          </View>
+        </View>
+
+        <AppCard>
+          <View
+            style={
+              styles.cardHeader
+            }
+          >
             <Text
-              style={styles.label}
-            >
-              CALORIES
-            </Text>
-
-            <View
               style={
-                styles.calorieRow
+                styles.cardTitle
               }
             >
-              <Text
-                style={
-                  styles.calorieValue
-                }
-              >
-                {totalCalories}
-              </Text>
+              Today&apos;s Nutrition
+            </Text>
+          </View>
 
-              <Text
+          <View
+            style={
+              styles.nutritionDashboard
+            }
+          >
+            <View
+              style={
+                styles.calorieRingWrap
+              }
+            >
+              <Svg
+                width={124}
+                height={124}
+                viewBox="0 0 150 150"
+              >
+                <Circle
+                  cx="75"
+                  cy="75"
+                  r="61"
+                  fill="none"
+                  stroke={
+                    colors.surfaceSecondary
+                  }
+                  strokeWidth="13"
+                />
+
+                <Circle
+                  cx="75"
+                  cy="75"
+                  r="61"
+                  fill="none"
+                  stroke={
+                    isOverCalories
+                      ? colors.warning
+                      : colors.primary
+                  }
+                  strokeWidth="13"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 61}`}
+                  strokeDashoffset={`${
+                    2 *
+                    Math.PI *
+                    61 *
+                    (1 -
+                      calorieProgress /
+                        100)
+                  }`}
+                  transform="rotate(-90 75 75)"
+                />
+              </Svg>
+
+              <View
                 style={
-                  styles.calorieTarget
+                  styles.calorieRingContent
                 }
               >
-                {' '}
-                /{' '}
-                {calorieTarget.toLocaleString()}{' '}
-                kcal
-              </Text>
+                <Text
+                  style={
+                    styles.calorieRingValue
+                  }
+                >
+                  {totalCalories.toLocaleString()}
+                </Text>
+
+                <Text
+                  style={
+                    styles.calorieRingTarget
+                  }
+                >
+                  of {calorieTarget.toLocaleString()}
+                </Text>
+
+                <Text
+                  style={
+                    styles.calorieRingUnit
+                  }
+                >
+                  kcal
+                </Text>
+              </View>
             </View>
 
             <View
               style={
-                styles.progressTrack
+                styles.macroPanel
               }
             >
               <View
-                style={[
-                  styles.progressFill,
+                style={
+                  styles.nutritionMacroItem
+                }
+              >
+                <View
+                  style={
+                    styles.macroLabelRow
+                  }
+                >
+                  <Text
+                    style={
+                      styles.macroName
+                    }
+                  >
+                    Protein
+                  </Text>
 
-                  {
-                    width: `${calorieProgress}%`,
-                  },
-                ]}
-              />
+                  <Text
+                    style={
+                      styles.macroNumbers
+                    }
+                  >
+                    {totalProtein} / {proteinTarget} g
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.macroTrack
+                  }
+                >
+                  <View
+                    style={[
+                      styles.macroFill,
+                      {
+                        width: `${proteinProgress}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View
+                style={
+                  styles.nutritionMacroItem
+                }
+              >
+                <View
+                  style={
+                    styles.macroLabelRow
+                  }
+                >
+                  <Text
+                    style={
+                      styles.macroName
+                    }
+                  >
+                    Carbs
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.macroNumbers
+                    }
+                  >
+                    {totalCarbs} / {carbTarget} g
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.macroTrack
+                  }
+                >
+                  <View
+                    style={[
+                      styles.macroFill,
+                      {
+                        width: `${carbProgress}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View
+                style={
+                  styles.nutritionMacroItem
+                }
+              >
+                <View
+                  style={
+                    styles.macroLabelRow
+                  }
+                >
+                  <Text
+                    style={
+                      styles.macroName
+                    }
+                  >
+                    Fat
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.macroNumbers
+                    }
+                  >
+                    {totalFat} / {fatTarget} g
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.macroTrack
+                  }
+                >
+                  <View
+                    style={[
+                      styles.macroFill,
+                      {
+                        width: `${fatProgress}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
             </View>
           </View>
 
           <View
             style={
-              styles.macroRow
+              styles.calorieFooter
             }
           >
             <View
               style={
-                styles.macroItem
+                styles.calorieStatus
               }
             >
-              <Text
-                style={
-                  styles.label
+              <Ionicons
+                name={
+                  isOverCalories
+                    ? 'alert-circle-outline'
+                    : 'flame-outline'
                 }
-              >
-                PROTEIN
-              </Text>
+                size={15}
+                color={
+                  isOverCalories
+                    ? colors.warning
+                    : colors.primary
+                }
+              />
 
               <Text
-                style={
-                  styles.macroValue
-                }
-              >
-                {totalProtein}
-              </Text>
+                style={[
+                  styles.calorieStatusText,
 
-              <Text
-                style={
-                  styles.macroTarget
-                }
+                  isOverCalories &&
+                    styles.calorieStatusOver,
+                ]}
               >
-                of {proteinTarget}g
+                {calorieStatusAmount.toLocaleString()} kcal{' '}
+                {isOverCalories
+                  ? 'over target'
+                  : 'remaining'}
               </Text>
             </View>
 
-            <View
+            <Text
               style={
-                styles.macroItem
+                styles.caloriePercent
               }
             >
-              <Text
-                style={
-                  styles.label
-                }
-              >
-                CARBS
-              </Text>
-
-              <Text
-                style={
-                  styles.macroValue
-                }
-              >
-                {totalCarbs}
-              </Text>
-
-              <Text
-                style={
-                  styles.macroTarget
-                }
-              >
-                of {carbTarget}g
-              </Text>
-            </View>
-
-            <View
-              style={
-                styles.macroItem
-              }
-            >
-              <Text
-                style={
-                  styles.label
-                }
-              >
-                FAT
-              </Text>
-
-              <Text
-                style={
-                  styles.macroValue
-                }
-              >
-                {totalFat}
-              </Text>
-
-              <Text
-                style={
-                  styles.macroTarget
-                }
-              >
-                of {fatTarget}g
-              </Text>
-            </View>
+              {Math.round(
+                (totalCalories /
+                  Math.max(
+                    calorieTarget,
+                    1
+                  )) *
+                  100
+              )}
+              %
+            </Text>
           </View>
 
           {profileLoading && (
@@ -912,362 +1429,138 @@ export default function FoodScreen() {
           )}
         </AppCard>
         <AppCard>
-          <View
-            style={
-              styles.recipeHeader
-            }
-          >
-            <View
-              style={
-                styles.recipeHeaderText
-              }
-            >
-              <Text
-                style={
-                  styles.cardTitle
-                }
-              >
-                Recipes
+          <View style={styles.recipeHeader}>
+            <View style={styles.recipeHeaderText}>
+              <Text style={styles.cardTitle}>
+                Recent Recipes
               </Text>
-
-              <Text
-                style={
-                  styles.secondaryText
-                }
-              >
-                Build and reuse your
-                own meals.
+              <Text style={styles.secondaryText}>
+                Quickly log recipes you&apos;ve used before.
               </Text>
             </View>
 
-            <View
-              style={
-                styles.recipeHeaderActions
-              }
-            >
+            <View style={styles.recipeHeaderActions}>
               <Pressable
-                style={({
-                  pressed,
-                }) => [
+                style={({ pressed }) => [
                   styles.viewRecipesButton,
-
-                  pressed &&
-                    styles.pressed,
+                  pressed && styles.pressed,
                 ]}
-                onPress={
-                  handleViewRecipes
-                }
+                onPress={handleViewRecipes}
               >
-                <Text
-                  style={
-                    styles.viewRecipesButtonText
-                  }
-                >
+                <Text style={styles.viewRecipesButtonText}>
                   View All
                 </Text>
               </Pressable>
 
               <Pressable
-                style={({
-                  pressed,
-                }) => [
+                style={({ pressed }) => [
                   styles.createRecipeButton,
-
-                  pressed &&
-                    styles.pressed,
+                  pressed && styles.pressed,
                 ]}
-                onPress={
-                  handleCreateRecipe
-                }
+                onPress={handleCreateRecipe}
               >
-                <Text
-                  style={
-                    styles.createRecipeButtonText
-                  }
-                >
+                <Text style={styles.createRecipeButtonText}>
                   + Create
                 </Text>
               </Pressable>
             </View>
           </View>
 
-          {recipesLoading ? (
-            <View
-              style={
-                styles.recipeLoading
-              }
-            >
+          {recentRecipesLoading ||
+          recipesLoading ||
+          curatedLoading ? (
+            <View style={styles.recipeLoading}>
               <ActivityIndicator
                 size="small"
-                color={
-                  colors.primary
-                }
+                color={colors.primary}
               />
-
-              <Text
-                style={
-                  styles.secondaryText
-                }
-              >
-                Loading recipes...
+              <Text style={styles.secondaryText}>
+                Loading recent recipes...
               </Text>
             </View>
-          ) : recipes.length ===
-            0 ? (
-            <View
-              style={
-                styles.emptyRecipes
-              }
-            >
-              <Text
-                style={
-                  styles.emptyTitle
-                }
-              >
-                No saved recipes
+          ) : recentRecipes.length === 0 ? (
+            <View style={styles.emptyRecipes}>
+              <Text style={styles.emptyTitle}>
+                No recent recipes
               </Text>
-
-              <Text
-                style={
-                  styles.secondaryText
-                }
-              >
-                Create a recipe or
-                save one from Apollo&apos;s
-                recipe library.
+              <Text style={styles.secondaryText}>
+                Recipes you log will appear here for quick access.
               </Text>
             </View>
           ) : (
             <>
-              {previewRecipes.map(
-                (recipe) => {
+              {recentRecipes.map(
+                ({ recipe, source }) => {
                   const perServing =
-                    calculatePerServing(
-                      recipe
-                    );
-
-                  const isDeleting =
-                    deletingRecipeId ===
-                    recipe.id;
+                    calculatePerServing(recipe);
 
                   return (
                     <View
-                      key={
-                        recipe.id
-                      }
-                      style={
-                        styles.recipeCard
-                      }
+                      key={`${source}:${recipe.id}`}
+                      style={styles.recipeCard}
                     >
-                      <View
-                        style={
-                          styles.recipeCardTop
-                        }
-                      >
-                        <View
-                          style={
-                            styles.recipeInfo
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.recipeName
-                            }
-                          >
-                            {
-                              recipe.name
-                            }
+                      <View style={styles.recipeCardTop}>
+                        <View style={styles.recipeInfo}>
+                          <Text style={styles.recipeName}>
+                            {recipe.name}
                           </Text>
-
-                          <Text
-                            style={
-                              styles.recipeServingText
-                            }
-                          >
-                            {
-                              recipe.servings
-                            }{' '}
-                            {recipe.servings ===
-                            1
+                          <Text style={styles.recipeServingText}>
+                            {source === 'apollo'
+                              ? 'Apollo Recipe'
+                              : 'My Recipe'}{' '}
+                            · {recipe.servings}{' '}
+                            {recipe.servings === 1
                               ? 'serving'
-                              : 'servings'}{' '}
-                            ·{' '}
-                            {
-                              recipe.ingredients
-                                .length
-                            }{' '}
-                            {recipe.ingredients
-                              .length ===
-                            1
-                              ? 'ingredient'
-                              : 'ingredients'}
+                              : 'servings'}
                           </Text>
                         </View>
 
-                        <View
-                          style={
-                            styles.recipeCaloriesArea
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.recipeCalories
-                            }
-                          >
-                            {
-                              perServing.calories
-                            }
+                        <View style={styles.recipeCaloriesArea}>
+                          <Text style={styles.recipeCalories}>
+                            {perServing.calories}
                           </Text>
-
-                          <Text
-                            style={
-                              styles.recipeCaloriesLabel
-                            }
-                          >
+                          <Text style={styles.recipeCaloriesLabel}>
                             kcal / serving
                           </Text>
                         </View>
                       </View>
 
-                      <View
-                        style={
-                          styles.recipeMacroRow
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.recipeMacroText
-                          }
-                        >
-                          P{' '}
-                          {
-                            perServing.protein
-                          }
-                          g
+                      <View style={styles.recipeMacroRow}>
+                        <Text style={styles.recipeMacroText}>
+                          P {perServing.protein}g
                         </Text>
-
-                        <Text
-                          style={
-                            styles.recipeMacroText
-                          }
-                        >
-                          C{' '}
-                          {
-                            perServing.carbs
-                          }
-                          g
+                        <Text style={styles.recipeMacroText}>
+                          C {perServing.carbs}g
                         </Text>
-
-                        <Text
-                          style={
-                            styles.recipeMacroText
-                          }
-                        >
-                          F{' '}
-                          {
-                            perServing.fat
-                          }
-                          g
+                        <Text style={styles.recipeMacroText}>
+                          F {perServing.fat}g
                         </Text>
                       </View>
 
-                      {recipe.description ? (
-                        <Text
-                          style={
-                            styles.recipeDescription
-                          }
-                        >
-                          {
-                            recipe.description
-                          }
-                        </Text>
-                      ) : null}
-
-                      <View
-                        style={
-                          styles.recipeActions
-                        }
-                      >
+                      <View style={styles.recipeActions}>
                         <Pressable
-                          style={({
-                            pressed,
-                          }) => [
+                          style={({ pressed }) => [
                             styles.logRecipeButton,
-
-                            pressed &&
-                              styles.pressed,
+                            pressed && styles.pressed,
                           ]}
                           onPress={() =>
-                            openLogRecipe(
-                              recipe
-                            )
+                            openLogRecipe(recipe)
                           }
                         >
-                          <Text
-                            style={
-                              styles.logRecipeButtonText
-                            }
-                          >
-                            Log Recipe
+                          <Text style={styles.logRecipeButtonText}>
+                            Log Again
                           </Text>
                         </Pressable>
 
                         <Pressable
-                          style={({
-                            pressed,
-                          }) => [
-                            styles.editRecipeButton,
-
-                            pressed &&
-                              styles.pressed,
+                          style={({ pressed }) => [
+                            styles.viewRecipesButton,
+                            pressed && styles.pressed,
                           ]}
-                          onPress={() =>
-                            handleEditRecipe(
-                              recipe
-                            )
-                          }
+                          onPress={handleViewRecipes}
                         >
-                          <Text
-                            style={
-                              styles.editRecipeButtonText
-                            }
-                          >
-                            Edit
-                          </Text>
-                        </Pressable>
-
-                        <Pressable
-                          style={({
-                            pressed,
-                          }) => [
-                            styles.deleteRecipeButton,
-
-                            pressed &&
-                              !isDeleting &&
-                              styles.pressed,
-
-                            isDeleting &&
-                              styles.disabled,
-                          ]}
-                          onPress={() =>
-                            handleDeleteRecipe(
-                              recipe
-                            )
-                          }
-                          disabled={
-                            Boolean(
-                              deletingRecipeId
-                            )
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.deleteRecipeButtonText
-                            }
-                          >
-                            {isDeleting
-                              ? 'Deleting...'
-                              : 'Delete'}
+                          <Text style={styles.viewRecipesButtonText}>
+                            Recipe Library
                           </Text>
                         </Pressable>
                       </View>
@@ -1275,409 +1568,9 @@ export default function FoodScreen() {
                   );
                 }
               )}
-
-              {recipes.length > 3 ? (
-                <Pressable
-                  style={({
-                    pressed,
-                  }) => [
-                    styles.moreRecipesButton,
-
-                    pressed &&
-                      styles.pressed,
-                  ]}
-                  onPress={
-                    handleViewRecipes
-                  }
-                >
-                  <Text
-                    style={
-                      styles.moreRecipesButtonText
-                    }
-                  >
-                    View{' '}
-                    {recipes.length -
-                      3}{' '}
-                    more{' '}
-                    {recipes.length -
-                      3 ===
-                    1
-                      ? 'recipe'
-                      : 'recipes'}
-                  </Text>
-                </Pressable>
-              ) : null}
             </>
           )}
         </AppCard>
-
-        <AppCard>
-          <View
-            style={
-              styles.apolloHeader
-            }
-          >
-            <View
-              style={
-                styles.apolloHeaderText
-              }
-            >
-              <View
-                style={
-                  styles.apolloTitleRow
-                }
-              >
-                <View
-                  style={
-                    styles.apolloIcon
-                  }
-                >
-                  <Text
-                    style={
-                      styles.apolloIconText
-                    }
-                  >
-                    ✦
-                  </Text>
-                </View>
-
-                <Text
-                  style={
-                    styles.cardTitle
-                  }
-                >
-                  Featured Apollo
-                </Text>
-              </View>
-
-              <Text
-                style={
-                  styles.secondaryText
-                }
-              >
-                High-protein recipes
-                ready to log.
-              </Text>
-            </View>
-
-            <Pressable
-              style={({
-                pressed,
-              }) => [
-                styles.viewApolloButton,
-
-                pressed &&
-                  styles.pressed,
-              ]}
-              onPress={
-                handleViewRecipes
-              }
-            >
-              <Text
-                style={
-                  styles.viewApolloButtonText
-                }
-              >
-                View All
-              </Text>
-            </Pressable>
-          </View>
-
-          {curatedLoading ? (
-            <View
-              style={
-                styles.recipeLoading
-              }
-            >
-              <ActivityIndicator
-                size="small"
-                color={
-                  colors.primary
-                }
-              />
-
-              <Text
-                style={
-                  styles.secondaryText
-                }
-              >
-                Loading Apollo
-                recipes...
-              </Text>
-            </View>
-          ) : featuredApolloRecipes.length ===
-            0 ? (
-            <View
-              style={
-                styles.emptyRecipes
-              }
-            >
-              <Text
-                style={
-                  styles.emptyTitle
-                }
-              >
-                No featured recipes
-              </Text>
-
-              <Text
-                style={
-                  styles.secondaryText
-                }
-              >
-                Featured Apollo
-                recipes will appear
-                here.
-              </Text>
-            </View>
-          ) : (
-            <>
-              {featuredApolloRecipes.map(
-                (recipe) => {
-                  const perServing =
-                    calculatePerServing(
-                      recipe
-                    );
-
-                  return (
-                    <View
-                      key={
-                        recipe.id
-                      }
-                      style={
-                        styles.apolloRecipeCard
-                      }
-                    >
-                      <View
-                        style={
-                          styles.apolloBadgeRow
-                        }
-                      >
-                        <View
-                          style={
-                            styles.apolloBadge
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.apolloBadgeText
-                            }
-                          >
-                            APOLLO
-                          </Text>
-                        </View>
-
-                        {recipe.category ? (
-                          <View
-                            style={
-                              styles.apolloCategoryBadge
-                            }
-                          >
-                            <Text
-                              style={
-                                styles.apolloCategoryText
-                              }
-                            >
-                              {
-                                recipe.category
-                              }
-                            </Text>
-                          </View>
-                        ) : null}
-
-                        <View
-                          style={
-                            styles.featuredBadge
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.featuredBadgeText
-                            }
-                          >
-                            ★ FEATURED
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View
-                        style={
-                          styles.recipeCardTop
-                        }
-                      >
-                        <View
-                          style={
-                            styles.recipeInfo
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.recipeName
-                            }
-                          >
-                            {
-                              recipe.name
-                            }
-                          </Text>
-
-                          <Text
-                            style={
-                              styles.recipeServingText
-                            }
-                          >
-                            {
-                              recipe.servings
-                            }{' '}
-                            {recipe.servings ===
-                            1
-                              ? 'serving'
-                              : 'servings'}{' '}
-                            ·{' '}
-                            {
-                              recipe.ingredients
-                                .length
-                            }{' '}
-                            {recipe.ingredients
-                              .length ===
-                            1
-                              ? 'ingredient'
-                              : 'ingredients'}
-                          </Text>
-                        </View>
-
-                        <View
-                          style={
-                            styles.recipeCaloriesArea
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.recipeCalories
-                            }
-                          >
-                            {
-                              perServing.calories
-                            }
-                          </Text>
-
-                          <Text
-                            style={
-                              styles.recipeCaloriesLabel
-                            }
-                          >
-                            kcal / serving
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View
-                        style={
-                          styles.recipeMacroRow
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.recipeMacroText
-                          }
-                        >
-                          P{' '}
-                          {
-                            perServing.protein
-                          }
-                          g
-                        </Text>
-
-                        <Text
-                          style={
-                            styles.recipeMacroText
-                          }
-                        >
-                          C{' '}
-                          {
-                            perServing.carbs
-                          }
-                          g
-                        </Text>
-
-                        <Text
-                          style={
-                            styles.recipeMacroText
-                          }
-                        >
-                          F{' '}
-                          {
-                            perServing.fat
-                          }
-                          g
-                        </Text>
-                      </View>
-
-                      {recipe.description ? (
-                        <Text
-                          style={
-                            styles.recipeDescription
-                          }
-                          numberOfLines={2}
-                        >
-                          {
-                            recipe.description
-                          }
-                        </Text>
-                      ) : null}
-
-                      <Pressable
-                        style={({
-                          pressed,
-                        }) => [
-                          styles.apolloLogButton,
-
-                          pressed &&
-                            styles.pressed,
-                        ]}
-                        onPress={() =>
-                          openLogRecipe(
-                            recipe
-                          )
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.apolloLogButtonText
-                          }
-                        >
-                          Log Recipe
-                        </Text>
-                      </Pressable>
-                    </View>
-                  );
-                }
-              )}
-
-              <Pressable
-                style={({
-                  pressed,
-                }) => [
-                  styles.browseApolloButton,
-
-                  pressed &&
-                    styles.pressed,
-                ]}
-                onPress={
-                  handleViewRecipes
-                }
-              >
-                <Text
-                  style={
-                    styles.browseApolloButtonText
-                  }
-                >
-                  Browse Apollo Recipe
-                  Library
-                </Text>
-              </Pressable>
-            </>
-          )}
-        </AppCard>        
         {mealSections.map(
           (meal) => {
             const mealEntries =
@@ -2791,41 +2684,76 @@ const styles =
     },
 
     header: {
-      flexDirection: 'row',
-
-      justifyContent:
-        'space-between',
-
-      alignItems: 'center',
-
-      gap: spacing.md,
-
-      marginBottom:
-        spacing.sm,
+      marginBottom: 2,
+      gap: 8,
     },
 
-    headerText: {
+    brandRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+    },
+
+    brandMark: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor:
+        colors.border,
+      backgroundColor:
+        colors.surface,
+    },
+
+    brandMarkText: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+
+    brandCopy: {
       flex: 1,
+      gap: 1,
+    },
+
+    brandName: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 2.2,
+    },
+
+    brandTagline: {
+      color:
+        colors.textSecondary,
+      fontSize: 8,
+      fontWeight: '700',
+      letterSpacing: 1.05,
+    },
+
+    foodHeading: {
+      marginTop: 14,
+      marginBottom: 8,
     },
 
     screenTitle: {
       color: colors.text,
-
-      fontSize:
-        fontSize.screenTitle,
-
-      fontWeight: '700',
+      fontSize: 34,
+      lineHeight: 37,
+      fontWeight: '800',
+      letterSpacing: -1.25,
     },
 
     subtitle: {
       color:
         colors.textSecondary,
-
-      fontSize:
-        fontSize.body,
-
-      marginTop:
-        spacing.xs,
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: '600',
+      marginTop: 4,
     },
 
     fabContainer: {
@@ -3721,6 +3649,205 @@ const styles =
         fontSize.small,
 
       fontWeight: '700',
+    },
+
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+
+    nutritionDashboard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingTop: 0,
+    },
+
+    consistencyStrip: {
+      paddingHorizontal: 4,
+      marginBottom: 2,
+    },
+
+    consistencyDays: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent:
+        'space-between',
+    },
+
+    consistencyDay: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 5,
+    },
+
+    consistencyCircle: {
+      width: 27,
+      height: 27,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor:
+        colors.border,
+      backgroundColor:
+        'transparent',
+    },
+
+    consistencyCircleLogged: {
+      backgroundColor:
+        colors.primary,
+      borderColor:
+        colors.primary,
+    },
+
+    consistencyCircleToday: {
+      borderWidth: 2,
+      borderColor:
+        colors.primary,
+    },
+
+    consistencyCircleFuture: {
+      opacity: 0.3,
+    },
+
+    consistencyDayLabel: {
+      color:
+        colors.textSecondary,
+      fontSize: 8,
+      fontWeight: '700',
+      letterSpacing: 0.35,
+    },
+
+    consistencyDayLabelToday: {
+      color: colors.primary,
+      fontWeight: '900',
+    },
+
+    consistencyDayLabelFuture: {
+      opacity: 0.4,
+    },
+
+    calorieRingWrap: {
+      width: 124,
+      height: 124,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    calorieRingContent: {
+      position: 'absolute',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    calorieRingValue: {
+      color: colors.text,
+      fontSize: 26,
+      lineHeight: 29,
+      fontWeight: '800',
+      letterSpacing: -1,
+    },
+
+    calorieRingTarget: {
+      color:
+        colors.textSecondary,
+      fontSize: 9,
+      fontWeight: '600',
+      marginTop: 1,
+    },
+
+    calorieRingUnit: {
+      color:
+        colors.textSecondary,
+      fontSize: 8,
+      fontWeight: '600',
+      marginTop: 1,
+    },
+
+    macroPanel: {
+      flex: 1,
+      gap: 10,
+    },
+
+    nutritionMacroItem: {
+      gap: 5,
+    },
+
+    macroLabelRow: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      gap: 6,
+    },
+
+    macroName: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+
+    macroNumbers: {
+      color:
+        colors.textSecondary,
+      fontSize: 9,
+      fontWeight: '600',
+    },
+
+    macroTrack: {
+      height: 5,
+      borderRadius: 3,
+      backgroundColor:
+        colors.surfaceSecondary,
+      overflow: 'hidden',
+    },
+
+    macroFill: {
+      height: '100%',
+      borderRadius: 3,
+      backgroundColor:
+        colors.primary,
+    },
+
+    calorieFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      paddingTop: 6,
+      marginTop: 0,
+      borderTopWidth: 1,
+      borderTopColor:
+        colors.border,
+    },
+
+    calorieStatus: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+
+    calorieStatusText: {
+      color:
+        colors.textSecondary,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+
+    calorieStatusOver: {
+      color:
+        colors.warning,
+    },
+
+    caloriePercent: {
+      color:
+        colors.primary,
+      fontSize: 10,
+      fontWeight: '800',
     },
 
     label: {
